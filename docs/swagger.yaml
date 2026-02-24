@@ -1,0 +1,93 @@
+basePath: /
+definitions:
+  gocloak.UserInfo:
+    properties:
+      address:
+        $ref: '#/definitions/gocloak.UserInfoAddress'
+      email:
+        type: string
+      email_verified:
+        type: boolean
+      family_name:
+        type: string
+      gender:
+        type: string
+      given_name:
+        type: string
+      locale:
+        type: string
+      middle_name:
+        type: string
+      name:
+        type: string
+      nickname:
+        type: string
+      phone_number:
+        type: string
+      phone_number_verified:
+        type: boolean
+      picture:
+        type: string
+      preferred_username:
+        type: string
+      profile:
+        type: string
+      sub:
+        type: string
+      updated_at:
+        type: integer
+      website:
+        type: string
+      zoneinfo:
+        type: string
+    type: object
+  gocloak.UserInfoAddress:
+    properties:
+      country:
+        type: string
+      formatted:
+        type: string
+      locality:
+        type: string
+      postal_code:
+        type: string
+      region:
+        type: string
+      street_address:
+        type: string
+    type: object
+info:
+  contact: {}
+  license:
+    name: Apache-2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: LoRaWAN Platform Connector API
+paths:
+  /provision:
+    post:
+      consumes:
+      - application/json
+      description: Runs the provision for a new user
+      parameters:
+      - description: newly creted user id
+        in: query
+        name: user_id
+        required: true
+        type: string
+      - description: user info
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/gocloak.UserInfo'
+      responses:
+        "200":
+          description: status message (or null)
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      summary: Provision
+swagger: "2.0"
