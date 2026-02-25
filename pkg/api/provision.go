@@ -51,7 +51,7 @@ func postProvision(controller *controller.Controller) (string, string, gin.Handl
 			_ = gc.Error(errors.Join(model.ErrBadRequest, fmt.Errorf("unable to parse request body"), err))
 			return
 		}
-		err = controller.ProvisionUser(gc.Request.Context(), chirpUserId, userInfo)
+		err = controller.ProvisionUser(gc.Request.Context(), chirpUserId, model.UserInfoFromGocloakUserInfo(&userInfo))
 		if err != nil {
 			_ = gc.Error(errors.Join(fmt.Errorf("unable to provision user"), err))
 			return

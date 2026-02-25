@@ -21,8 +21,10 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/Nerzal/gocloak/v13"
+	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/log"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/model"
 	"google.golang.org/grpc/codes"
@@ -34,8 +36,12 @@ import (
 const appName = "platform-integration"
 const encoding = api.Encoding_PROTOBUF
 
-func (c *Controller) ProvisionUser(ctx context.Context, chirpUserId string, userInfo gocloak.UserInfo) error {
+// ProvisionUser creates a tenant and integration for the given user. chirpUserId is the id of the user in chirpstack. If the user does not exist (empty chirpUserId), it will be created.
+func (c *Controller) ProvisionUser(ctx context.Context, chirpUserId string, userInfo *model.UserInfo) error {
 	// input validation
+	if userInfo == nil {
+		return errors.Join(model.ErrBadRequest, fmt.Errorf("userInfo is nil"))
+	}
 	if userInfo.PreferredUsername == nil {
 		return errors.Join(model.ErrBadRequest, fmt.Errorf("userInfo has no preferred_username set"))
 	}
@@ -46,6 +52,41 @@ func (c *Controller) ProvisionUser(ctx context.Context, chirpUserId string, user
 		return errors.Join(model.ErrBadRequest, fmt.Errorf("userInfo has no sub set"))
 	}
 
+	if chirpUserId == "" {
+		var limit uint32 = 1000
+		var offset uint32 = 0
+		cont := true
+		for cont {
+			users, err := c.chirpUserClient.List(ctx, &api.ListUsersRequest{Limit: limit, Offset: offset})
+			if err != nil {
+				return err
+			}
+			for _, user := range users.GetResult() {
+				if user.Email == *userInfo.Email {
+					chirpUserId = user.Id
+					cont = false
+					break
+				}
+			}
+			cont = len(users.GetResult()) == int(limit)
+			offset += limit
+		}
+		if chirpUserId == "" {
+			userCreateResp, err := c.chirpUserClient.Create(ctx, &api.CreateUserRequest{
+				User: &api.User{
+					Email:    *userInfo.Email,
+					IsActive: true,
+					IsAdmin:  false,
+					Note:     "Created by lorawan-platform-connector",
+				},
+			})
+			if err != nil {
+				return err
+			}
+			chirpUserId = userCreateResp.GetId()
+		}
+	}
+
 	// get tenant id
 	tenantResp, err := c.chirpTenant.List(ctx, &api.ListTenantsRequest{UserId: chirpUserId, Limit: 2})
 	if err != nil {
@@ -54,7 +95,7 @@ func (c *Controller) ProvisionUser(ctx context.Context, chirpUserId string, user
 	tenants := tenantResp.GetResult()
 	var tenantId string
 	if len(tenants) == 0 {
-		tenant, err := c.createTenant(ctx, userInfo)
+		tenant, err := c.createTenant(ctx, *userInfo.PreferredUsername)
 		if err != nil {
 			return err
 		}
@@ -74,7 +115,13 @@ func (c *Controller) ProvisionUser(ctx context.Context, chirpUserId string, user
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			_, err = c.chirpTenant.AddUser(ctx, &api.AddTenantUserRequest{TenantUser: &api.TenantUser{
-				TenantId: tenantId, UserId: chirpUserId, Email: *userInfo.Email, IsGatewayAdmin: true}})
+				TenantId:       tenantId,
+				UserId:         chirpUserId,
+				Email:          *userInfo.Email,
+				IsGatewayAdmin: false,
+				IsAdmin:        false,
+				IsDeviceAdmin:  false,
+			}})
 			if err != nil {
 				return err
 			}
@@ -130,13 +177,30 @@ func (c *Controller) ProvisionUser(ctx context.Context, chirpUserId string, user
 	return nil
 }
 
-func (c *Controller) createTenant(ctx context.Context, userInfo gocloak.UserInfo) (tenant *api.CreateTenantResponse, err error) {
-	if userInfo.PreferredUsername == nil {
-		return nil, errors.Join(model.ErrBadRequest, fmt.Errorf("userInfo has no PreferredUsername set"))
+func (c *Controller) ProvisionAllUsers() error {
+	getUsersCtx, getUsersCf := context.WithTimeout(context.Background(), 10*time.Second)
+	defer getUsersCf()
+	c.jwtMux.RLock()
+	kcUsers, err := c.gocloakClient.GetUsers(getUsersCtx, c.jwt.AccessToken, "master", gocloak.GetUsersParams{})
+	c.jwtMux.RUnlock()
+	if err != nil {
+		return err
 	}
+	for _, kcUser := range kcUsers {
+		provisionCtx, provisionCf := context.WithTimeout(context.Background(), 10*time.Second)
+		err = c.ProvisionUser(provisionCtx, "", model.UserInfoFromUser(kcUser))
+		if err != nil {
+			log.Logger.Warn("unable to provision user", "user", *kcUser.Username, attributes.ErrorKey, err)
+		}
+		provisionCf()
+	}
+	return nil
+}
+
+func (c *Controller) createTenant(ctx context.Context, username string) (tenant *api.CreateTenantResponse, err error) {
 	return c.chirpTenant.Create(ctx, &api.CreateTenantRequest{
 		Tenant: &api.Tenant{
-			Name:                *userInfo.PreferredUsername,
+			Name:                username,
 			PrivateGatewaysUp:   true,
 			PrivateGatewaysDown: true,
 			CanHaveGateways:     true,

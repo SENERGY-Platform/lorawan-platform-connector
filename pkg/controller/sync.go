@@ -14,32 +14,35 @@
  * limitations under the License.
  */
 
-package pkg
+package controller
 
 import (
 	"context"
-	"sync"
+	"time"
 
 	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
-	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/api"
-
-	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/configuration"
-	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/controller"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/log"
 )
 
-func Start(ctx context.Context, config configuration.Config) (wg *sync.WaitGroup, err error) {
-	wg = &sync.WaitGroup{}
-	controller, err := controller.New(config, ctx)
-	if err != nil {
-		log.Logger.Error("unable to initialize controller", attributes.ErrorKey, err)
-	}
-	if err != nil {
-		return wg, err
-	}
-	err = api.Start(ctx, wg, config, controller)
-	if err != nil {
-		return wg, err
-	}
-	return
+func (c *Controller) sync() error {
+	return c.ProvisionAllUsers()
+}
+
+func (c *Controller) setupSync(ctx context.Context) {
+	ticker := time.NewTicker(1 * time.Hour)
+	defer ticker.Stop()
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				err := c.sync()
+				if err != nil {
+					log.Logger.Error("unable to sync", attributes.ErrorKey, err)
+					continue
+				}
+			}
+		}
+	}()
 }
