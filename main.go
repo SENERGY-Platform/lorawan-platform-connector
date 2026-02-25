@@ -32,15 +32,21 @@ import (
 func main() {
 	// default config
 	config := configuration.Config{
-		ChirpstackUrl: "http://chirpstack:8080",
-		KeycloakUrl:   "https://auth.senergy.infai.org/auth",
-		Host:          "http://api",
-		LogHandler:    "text",
-		LogLevel:      "info",
-		ServerPort:    8080,
+		ChirpstackUrl:      "http://chirpstack:8080",
+		KeycloakUrl:        "https://auth.senergy.infai.org/auth",
+		Host:               "http://api",
+		LogHandler:         "text",
+		LogLevel:           "info",
+		ServerPort:         8080,
+		ServerPortCommands: 8081,
 		ChirpstackProtectedUsers: []string{
 			"admin",
 		},
+		KafkaBootstrap:   "kafka:9092",
+		DeviceRepoUrl:    "http://api.device-repository:8080",
+		PermissionsV2Url: "http://permv2.permissions:8080",
+		MemcachedUrl:     "memcached:11211",
+		NotificationsUrl: "http://api.notifier:5000",
 	}
 
 	// load config from environment

@@ -17,10 +17,14 @@
 package api
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"strconv"
+
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/log"
 
@@ -44,37 +48,70 @@ import (
 // @Router       /provision [POST]
 func postEvent(controller *controller.Controller) (string, string, gin.HandlerFunc) {
 	return http.MethodPost, model.EventPath, func(gc *gin.Context) {
+		userId := gc.GetHeader("X-UserId")
+		if userId == "" {
+			gc.Error(errors.Join(model.ErrBadRequest, fmt.Errorf("missing header X-UserId")))
+			return
+		}
 		event := gc.Query("event")
 		switch event {
 		case "up":
 			var up integration.UplinkEvent
-			err := gc.ShouldBind(&up)
+			err := unmarshalEvent(gc, &up)
 			if err != nil {
-				gc.Error(errors.Join(model.ErrBadRequest, fmt.Errorf("unable to parse request body")))
+				gc.Error(errors.Join(model.ErrBadRequest, fmt.Errorf("unable to parse request body"), err))
 				return
 			}
 			deviceInfo := up.GetDeviceInfo()
 			if deviceInfo == nil {
-				gc.Error(errors.Join(model.ErrBadRequest, fmt.Errorf("unable to parse request body")))
+				gc.Error(errors.Join(model.ErrBadRequest, fmt.Errorf("unable to parse request body"), fmt.Errorf("deviceInfo is nil")))
 				return
 			}
-			log.Logger.Debug("Uplink received", "dev_eui", deviceInfo.DevEui, "payload", hex.EncodeToString(up.Data))
+			log.Logger.Debug("Uplink received", "dev_eui", deviceInfo.DevEui, "payload", up.Object, "user", userId, "fport", strconv.FormatUint(uint64(up.FPort), 10))
+			err = controller.HandleEvent(gc.Request.Context(), userId, deviceInfo.DevEui, strconv.FormatUint(uint64(up.FPort), 10), up.Object)
+			if err != nil {
+				gc.Error(err)
+				return
+			}
+			return
 		case "join":
 			var join integration.JoinEvent
-			err := gc.ShouldBind(&join)
+
+			err := unmarshalEvent(gc, &join)
 			if err != nil {
-				gc.Error(errors.Join(model.ErrBadRequest, fmt.Errorf("unable to parse request body")))
+				gc.Error(errors.Join(model.ErrBadRequest, fmt.Errorf("unable to parse request body"), err))
 				return
 			}
 			deviceInfo := join.GetDeviceInfo()
 			if deviceInfo == nil {
-				gc.Error(errors.Join(model.ErrBadRequest, fmt.Errorf("unable to parse request body")))
+				gc.Error(errors.Join(model.ErrBadRequest, fmt.Errorf("unable to parse request body"), fmt.Errorf("deviceInfo is nil")))
 				return
 			}
-			log.Logger.Debug("Device joined", "dev_eui", deviceInfo.DevEui, "dev_addr", join.DevAddr)
+			log.Logger.Debug("Device joined", "dev_eui", deviceInfo.DevEui, "dev_addr", join.DevAddr, "user", userId)
+			err = controller.AnnotateDeviceJoined(gc.Request.Context(), userId, deviceInfo.DevEui)
+			if err != nil {
+				gc.Error(err)
+				return
+			}
 		default:
 			gc.Error(errors.Join(model.ErrBadRequest, fmt.Errorf("unknown event type "+event)))
 			return
 		}
+	}
+}
+
+func unmarshalEvent(gc *gin.Context, v proto.Message) error {
+	body, err := io.ReadAll(gc.Request.Body)
+	gc.Request.Body.Close()
+	if err != nil {
+		return err
+	}
+	switch gc.ContentType() {
+	case "application/x-protobuf":
+		return proto.Unmarshal(body, v)
+	case "application/json":
+		return protojson.Unmarshal(body, v)
+	default:
+		return fmt.Errorf("unsupported content type " + gc.ContentType())
 	}
 }

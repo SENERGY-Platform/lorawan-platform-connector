@@ -6,13 +6,12 @@ Architecture diagram:
 
 ## TODOs
 
-- Automatic provisioning for existing/missed users on startup (and periodic sync)
-- Deletion of tenants on user removal
-- Gateway sync
+- Event forwarding to kafka (TODO: validate)
+- Request forwarding
 - Device Type (profile) sync
 - Device sync
-- Event forwarding to kafka
-- Request forwarding
+- Gateway sync
+- Event based user deletion
 
 ## Gotchas
 

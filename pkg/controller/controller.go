@@ -25,6 +25,7 @@ import (
 	"github.com/Nerzal/gocloak/v13"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/configuration"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/log"
+	platform_connector_lib "github.com/SENERGY-Platform/platform-connector-lib"
 	"github.com/chirpstack/chirpstack/api/go/v4/api"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -38,6 +39,7 @@ type Controller struct {
 	gocloakClient   *gocloak.GoCloak
 	jwt             *gocloak.JWT
 	jwtMux          sync.RWMutex
+	connector       *platform_connector_lib.Connector
 }
 
 func New(config configuration.Config, ctx context.Context) (*Controller, error) {
@@ -91,5 +93,14 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 			}
 		}
 	}()
+
+	// create connector
+	if config.KafkaBootstrap != "" {
+		controller.connector, err = getConnector(ctx, config)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return controller, nil
 }

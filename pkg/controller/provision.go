@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/Nerzal/gocloak/v13"
@@ -146,14 +147,18 @@ func (c *Controller) ProvisionAllUsers() error {
 	if err != nil {
 		return err
 	}
+	wg := sync.WaitGroup{}
 	for _, kcUser := range kcUsers {
-		provisionCtx, provisionCf := context.WithTimeout(context.Background(), 10*time.Second)
-		err = c.ProvisionUser(provisionCtx, "", model.UserInfoFromUser(kcUser))
-		if err != nil {
-			log.Logger.Warn("unable to provision user", "user", *kcUser.Username, attributes.ErrorKey, err)
-		}
-		provisionCf()
+		wg.Go(func() {
+			provisionCtx, provisionCf := context.WithTimeout(context.Background(), 10*time.Second)
+			err = c.ProvisionUser(provisionCtx, "", model.UserInfoFromUser(kcUser))
+			if err != nil {
+				log.Logger.Warn("unable to provision user", "user", *kcUser.Username, attributes.ErrorKey, err)
+			}
+			provisionCf()
+		})
 	}
+	wg.Wait()
 	return nil
 }
 
@@ -205,33 +210,38 @@ func (c *Controller) DeleteOutdatedUsers() error {
 		cont = len(users.GetResult()) == int(limit)
 		offset += limit
 	}
+	wg := sync.WaitGroup{}
 
 	for _, chirpUser := range chirpUsers {
 		if slices.Contains(c.config.ChirpstackProtectedUsers, chirpUser.Email) {
 			continue
 		}
-		// search matching keycloak user
-		match := false
-		for _, kcUser := range kcUsers {
-			if kcUser == nil || kcUser.Email == nil {
-				continue
+		wg.Go(func() {
+			// search matching keycloak user
+			match := false
+			for _, kcUser := range kcUsers {
+				if kcUser == nil || kcUser.Email == nil {
+					continue
+				}
+				if chirpUser.Email == *kcUser.Email {
+					match = true
+					break
+				}
 			}
-			if chirpUser.Email == *kcUser.Email {
-				match = true
-				break
+			if match {
+				return
 			}
-		}
-		if match {
-			continue
-		}
-		// no matching keycloak user exists
-		ctx, cf = context.WithTimeout(context.Background(), 10*time.Second)
-		err = c.DeleteUser(ctx, chirpUser.Email)
-		cf()
-		if err != nil {
-			return err
-		}
+			// no matching keycloak user exists
+			ctx, cf = context.WithTimeout(context.Background(), 10*time.Second)
+			err = c.DeleteUser(ctx, chirpUser.Email)
+			cf()
+			if err != nil {
+				log.Logger.Warn("unable to delete chirpstack user", "user", chirpUser.Email, attributes.ErrorKey, err)
+				return
+			}
+		})
 	}
+	wg.Wait()
 	return nil
 }
 

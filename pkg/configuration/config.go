@@ -26,5 +26,11 @@ type Config struct {
 	LogLevel                 string          `env_var:"LOG_LEVEL"`
 	LogHandler               string          `env_var:"LOG_HANDLER"`
 	ServerPort               uint            `env_var:"SERVER_PORT"`
+	ServerPortCommands       uint            `env_var:"SERVER_PORT_COMMANDS"`
 	Host                     string          `env_var:"HOST"`
+	KafkaBootstrap           string          `env_var:"KAFKA_BOOTSTRAP"`
+	DeviceRepoUrl            string          `env_var:"DEVICE_REPO_URL"`
+	PermissionsV2Url         string          `env_var:"PERMISSIONS_V2_URL"`
+	MemcachedUrl             string          `env_var:"MEMCACHED_URL"`
+	NotificationsUrl         string          `env_var:"NOTIFICATIONS_URL"`
 }
