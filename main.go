@@ -33,11 +33,14 @@ func main() {
 	// default config
 	config := configuration.Config{
 		ChirpstackUrl: "http://chirpstack:8080",
-		KeycloakUrl:   "https://auth.senergy.infai.org",
+		KeycloakUrl:   "https://auth.senergy.infai.org/auth",
 		Host:          "http://api",
 		LogHandler:    "text",
 		LogLevel:      "info",
 		ServerPort:    8080,
+		ChirpstackProtectedUsers: []string{
+			"admin",
+		},
 	}
 
 	// load config from environment

@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"time"
 
@@ -37,7 +38,7 @@ const appName = "platform-integration"
 const encoding = api.Encoding_PROTOBUF
 
 // ProvisionUser creates a tenant and integration for the given user. chirpUserId is the id of the user in chirpstack. If the user does not exist (empty chirpUserId), it will be created.
-func (c *Controller) ProvisionUser(ctx context.Context, chirpUserId string, userInfo *model.UserInfo) error {
+func (c *Controller) ProvisionUser(ctx context.Context, chirpUserId string, userInfo *model.UserInfo) (err error) {
 	// input validation
 	if userInfo == nil {
 		return errors.Join(model.ErrBadRequest, fmt.Errorf("userInfo is nil"))
@@ -52,59 +53,18 @@ func (c *Controller) ProvisionUser(ctx context.Context, chirpUserId string, user
 		return errors.Join(model.ErrBadRequest, fmt.Errorf("userInfo has no sub set"))
 	}
 
+	// get chirpstack user id
 	if chirpUserId == "" {
-		var limit uint32 = 1000
-		var offset uint32 = 0
-		cont := true
-		for cont {
-			users, err := c.chirpUserClient.List(ctx, &api.ListUsersRequest{Limit: limit, Offset: offset})
-			if err != nil {
-				return err
-			}
-			for _, user := range users.GetResult() {
-				if user.Email == *userInfo.Email {
-					chirpUserId = user.Id
-					cont = false
-					break
-				}
-			}
-			cont = len(users.GetResult()) == int(limit)
-			offset += limit
-		}
-		if chirpUserId == "" {
-			userCreateResp, err := c.chirpUserClient.Create(ctx, &api.CreateUserRequest{
-				User: &api.User{
-					Email:    *userInfo.Email,
-					IsActive: true,
-					IsAdmin:  false,
-					Note:     "Created by lorawan-platform-connector",
-				},
-			})
-			if err != nil {
-				return err
-			}
-			chirpUserId = userCreateResp.GetId()
+		chirpUserId, err = c.getOrCreateChirpstackUserId(ctx, *userInfo.Email)
+		if err != nil {
+			return err
 		}
 	}
 
 	// get tenant id
-	tenantResp, err := c.chirpTenant.List(ctx, &api.ListTenantsRequest{UserId: chirpUserId, Limit: 2})
+	tenantId, err := c.getOrCreateChirpstackTenantId(ctx, *userInfo.Email)
 	if err != nil {
 		return err
-	}
-	tenants := tenantResp.GetResult()
-	var tenantId string
-	if len(tenants) == 0 {
-		tenant, err := c.createTenant(ctx, *userInfo.PreferredUsername)
-		if err != nil {
-			return err
-		}
-		tenantId = tenant.Id
-	} else if len(tenants) > 1 {
-		log.Logger.Error("found multiple tenants", "chirpstack_user_id", chirpUserId, "keycloak_user_id", userInfo.Sub, "email", userInfo.Email)
-		return fmt.Errorf("found multiple tenants")
-	} else {
-		tenantId = tenants[0].Id
 	}
 
 	// add user to tenant if needed
@@ -197,10 +157,88 @@ func (c *Controller) ProvisionAllUsers() error {
 	return nil
 }
 
-func (c *Controller) createTenant(ctx context.Context, username string) (tenant *api.CreateTenantResponse, err error) {
+func (c *Controller) DeleteUser(ctx context.Context, email string) error {
+	// get ids
+	userId, err := c.getOrCreateChirpstackUserId(ctx, email)
+	if err != nil {
+		return err
+	}
+	tenantId, err := c.getOrCreateChirpstackTenantId(ctx, email)
+	if err != nil {
+		return err
+	}
+
+	// delete
+	_, err = c.chirpUserClient.Delete(ctx, &api.DeleteUserRequest{Id: userId})
+	if err != nil {
+		return err
+	}
+	_, err = c.chirpTenant.Delete(ctx, &api.DeleteTenantRequest{Id: tenantId})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Controller) DeleteOutdatedUsers() error {
+	ctx, cf := context.WithTimeout(context.Background(), 10*time.Second)
+	c.jwtMux.RLock()
+	kcUsers, err := c.gocloakClient.GetUsers(ctx, c.jwt.AccessToken, "master", gocloak.GetUsersParams{})
+	c.jwtMux.RUnlock()
+	cf()
+	if err != nil {
+		return err
+	}
+
+	var limit uint32 = 1000
+	var offset uint32 = 0
+	chirpUsers := []*api.UserListItem{}
+	cont := true
+	for cont {
+		ctx, cf = context.WithTimeout(context.Background(), 10*time.Second)
+		users, err := c.chirpUserClient.List(ctx, &api.ListUsersRequest{Limit: limit, Offset: offset})
+		cf()
+		if err != nil {
+			return err
+		}
+		chirpUsers = append(chirpUsers, users.GetResult()...)
+		cont = len(users.GetResult()) == int(limit)
+		offset += limit
+	}
+
+	for _, chirpUser := range chirpUsers {
+		if slices.Contains(c.config.ChirpstackProtectedUsers, chirpUser.Email) {
+			continue
+		}
+		// search matching keycloak user
+		match := false
+		for _, kcUser := range kcUsers {
+			if kcUser == nil || kcUser.Email == nil {
+				continue
+			}
+			if chirpUser.Email == *kcUser.Email {
+				match = true
+				break
+			}
+		}
+		if match {
+			continue
+		}
+		// no matching keycloak user exists
+		ctx, cf = context.WithTimeout(context.Background(), 10*time.Second)
+		err = c.DeleteUser(ctx, chirpUser.Email)
+		cf()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Controller) createTenant(ctx context.Context, email string) (tenant *api.CreateTenantResponse, err error) {
 	return c.chirpTenant.Create(ctx, &api.CreateTenantRequest{
 		Tenant: &api.Tenant{
-			Name:                username,
+			Name:                email,
 			PrivateGatewaysUp:   true,
 			PrivateGatewaysDown: true,
 			CanHaveGateways:     true,
@@ -233,4 +271,56 @@ func (c *Controller) createIntegration(ctx context.Context, appId string, platfo
 		},
 	})
 	return err
+}
+
+func (c *Controller) getOrCreateChirpstackUserId(ctx context.Context, email string) (string, error) {
+	var limit uint32 = 1000
+	var offset uint32 = 0
+	cont := true
+	for cont {
+		users, err := c.chirpUserClient.List(ctx, &api.ListUsersRequest{Limit: limit, Offset: offset})
+		if err != nil {
+			return "", err
+		}
+		for _, user := range users.GetResult() {
+			if user.Email == email {
+				return user.Id, nil
+			}
+		}
+		cont = len(users.GetResult()) == int(limit)
+		offset += limit
+	}
+	// not found, creating
+	userCreateResp, err := c.chirpUserClient.Create(ctx, &api.CreateUserRequest{
+		User: &api.User{
+			Email:    email,
+			IsActive: true,
+			IsAdmin:  false,
+			Note:     "Created by lorawan-platform-connector",
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+	return userCreateResp.GetId(), err
+}
+
+func (c *Controller) getOrCreateChirpstackTenantId(ctx context.Context, email string) (string, error) {
+	tenantResp, err := c.chirpTenant.List(ctx, &api.ListTenantsRequest{Search: email, Limit: 2})
+	if err != nil {
+		return "", err
+	}
+	tenants := tenantResp.GetResult()
+	if len(tenants) == 0 {
+		tenant, err := c.createTenant(ctx, email)
+		if err != nil {
+			return "", err
+		}
+		return tenant.Id, nil
+	} else if len(tenants) > 1 {
+		log.Logger.Error("found multiple tenants", "email", email)
+		return "", fmt.Errorf("found multiple tenants")
+	}
+	return tenants[0].Id, nil
+
 }

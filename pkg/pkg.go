@@ -33,7 +33,9 @@ func Start(ctx context.Context, config configuration.Config) (wg *sync.WaitGroup
 	controller, err := controller.New(config, ctx)
 	if err != nil {
 		log.Logger.Error("unable to initialize controller", attributes.ErrorKey, err)
+		return wg, err
 	}
+	err = controller.Sync()
 	if err != nil {
 		return wg, err
 	}

@@ -18,14 +18,18 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/log"
 )
 
-func (c *Controller) sync() error {
-	return c.ProvisionAllUsers()
+func (c *Controller) Sync() (err error) {
+	return errors.Join(
+		c.ProvisionAllUsers(),
+		c.DeleteOutdatedUsers(),
+	)
 }
 
 func (c *Controller) setupSync(ctx context.Context) {
@@ -37,7 +41,7 @@ func (c *Controller) setupSync(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				err := c.sync()
+				err := c.Sync()
 				if err != nil {
 					log.Logger.Error("unable to sync", attributes.ErrorKey, err)
 					continue

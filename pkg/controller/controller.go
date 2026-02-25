@@ -69,10 +69,6 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 	}
 	// create controller
 	controller := &Controller{config: config, chirpUserClient: chirpUserClient, chirpTenant: chirpTenant, chirpApp: chirpApp, jwt: jwt, gocloakClient: gocloakClient, jwtMux: sync.RWMutex{}}
-	err = controller.sync()
-	if err != nil {
-		return nil, err
-	}
 	controller.setupSync(ctx)
 
 	// setup token refresh

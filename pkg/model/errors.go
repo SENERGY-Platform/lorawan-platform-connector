@@ -23,6 +23,7 @@ import (
 )
 
 var ErrBadRequest = fmt.Errorf("bad request")
+var ErrNotFound = fmt.Errorf("not found")
 
 func GetStatusCode(err error) int {
 	if err == nil {
@@ -30,6 +31,9 @@ func GetStatusCode(err error) int {
 	}
 	if errors.Is(err, ErrBadRequest) {
 		return http.StatusBadRequest
+	}
+	if errors.Is(err, ErrNotFound) {
+		return http.StatusNotFound
 	}
 
 	return http.StatusInternalServerError

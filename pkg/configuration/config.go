@@ -17,13 +17,14 @@
 package configuration
 
 type Config struct {
-	ChirpstackUrl        string          `env_var:"CHIRPSTACK_URL"`
-	ChirpstackApiToken   ChirpstackToken `env_var:"CHIRPSTACK_API_TOKEN"`
-	KeycloakUrl          string          `env_var:"KEYCLOAK_URL"`
-	KeycloakClientId     string          `env_var:"KEYCLOAK_CLIENT_ID"`
-	KeycloakClientSecret string          `env_var:"KEYCLOAK_CLIENT_SECRET"`
-	LogLevel             string          `env_var:"LOG_LEVEL"`
-	LogHandler           string          `env_var:"LOG_HANDLER"`
-	ServerPort           uint            `env_var:"SERVER_PORT"`
-	Host                 string          `env_var:"HOST"`
+	ChirpstackUrl            string          `env_var:"CHIRPSTACK_URL"`
+	ChirpstackApiToken       ChirpstackToken `env_var:"CHIRPSTACK_API_TOKEN"`
+	ChirpstackProtectedUsers []string        `env_var:"CHIRPSTACK_PROTECTED_USERS"`
+	KeycloakUrl              string          `env_var:"KEYCLOAK_URL"`
+	KeycloakClientId         string          `env_var:"KEYCLOAK_CLIENT_ID"`
+	KeycloakClientSecret     string          `env_var:"KEYCLOAK_CLIENT_SECRET"`
+	LogLevel                 string          `env_var:"LOG_LEVEL"`
+	LogHandler               string          `env_var:"LOG_HANDLER"`
+	ServerPort               uint            `env_var:"SERVER_PORT"`
+	Host                     string          `env_var:"HOST"`
 }
