@@ -55,7 +55,7 @@ func Start(ctx context.Context, wg *sync.WaitGroup, config configuration.Config,
 		gin_mw.StructLoggerHandlerWithDefaultGenerators(
 			log.Logger.With(attributes.LogRecordTypeKey, attributes.HttpAccessLogRecordTypeVal),
 			attributes.Provider,
-			[]string{},
+			[]string{healthCheckPath},
 			nil,
 		),
 		requestid.New(requestid.WithCustomHeaderStrKey("X-Request-ID")),
