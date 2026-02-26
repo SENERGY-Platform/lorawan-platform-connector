@@ -32,10 +32,11 @@ import (
 func main() {
 	// default config
 	config := configuration.Config{
-		ChirpstackUrl:      "http://chirpstack:8080",
+		ChirpstackUrl:      "ui.lora.senergy.infai.org",
 		KeycloakUrl:        "https://auth.senergy.infai.org/auth",
-		Host:               "http://api",
-		LogHandler:         "text",
+		KeycloakClientId:   "lorawan-platform-connector",
+		Host:               "http://connector",
+		LogHandler:         "json",
 		LogLevel:           "info",
 		ServerPort:         8080,
 		ServerPortCommands: 8081,
