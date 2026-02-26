@@ -6,11 +6,10 @@ Architecture diagram:
 
 ## TODOs
 
-- Event forwarding to kafka (TODO: validate)
 - Request forwarding
-- Device Type (profile) sync
 - Device sync
 - Gateway sync
+- Device Type (profile) sync
 - Event based user deletion
 
 ## Gotchas

@@ -3,30 +3,29 @@ module github.com/SENERGY-Platform/lorawan-platform-connector
 go 1.25.7
 
 require (
+	github.com/IBM/sarama v1.43.3
 	github.com/Nerzal/gocloak/v13 v13.9.0
 	github.com/SENERGY-Platform/gin-middleware v0.12.0
 	github.com/SENERGY-Platform/go-env-loader v0.5.3
 	github.com/SENERGY-Platform/go-service-base/struct-logger v0.6.0
+	github.com/SENERGY-Platform/platform-connector-lib v0.0.0-20260226054955-4f9f91afcfa1
 	github.com/chirpstack/chirpstack/api/go/v4 v4.16.2
 	github.com/gin-contrib/requestid v1.0.5
 	github.com/gin-gonic/gin v1.11.0
 	github.com/swaggo/swag v1.16.6
 	google.golang.org/grpc v1.79.1
+	google.golang.org/protobuf v1.36.10
 )
 
 require (
-	github.com/IBM/sarama v1.43.3 // indirect
 	github.com/Knetic/govaluate v3.0.0+incompatible // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
-	github.com/PuerkitoBio/purell v1.1.1 // indirect
-	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/RyanCarrier/dijkstra v1.4.0 // indirect
 	github.com/SENERGY-Platform/converter v0.0.10 // indirect
 	github.com/SENERGY-Platform/developer-notifications v0.0.4 // indirect
 	github.com/SENERGY-Platform/device-repository v0.2.36 // indirect
 	github.com/SENERGY-Platform/models/go v0.0.0-20251202070403-e7e5579f7111 // indirect
 	github.com/SENERGY-Platform/permissions-v2 v0.0.40 // indirect
-	github.com/SENERGY-Platform/platform-connector-lib v0.0.0-20260115075539-7983058e105b // indirect
 	github.com/SENERGY-Platform/service-commons v0.0.0-20260106114257-16bca4ba28e7 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20230905024940-24af94b03874 // indirect
@@ -101,7 +100,6 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/segmentio/kafka-go v0.4.49 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
-	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/swaggo/files v1.0.1 // indirect
 	github.com/swaggo/http-swagger v1.3.4 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
@@ -124,7 +122,6 @@ require (
 	golang.org/x/tools v0.39.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
-	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/go-playground/colors.v1 v1.2.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

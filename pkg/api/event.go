@@ -67,8 +67,8 @@ func postEvent(controller *controller.Controller) (string, string, gin.HandlerFu
 				gc.Error(errors.Join(model.ErrBadRequest, fmt.Errorf("unable to parse request body"), fmt.Errorf("deviceInfo is nil")))
 				return
 			}
-			log.Logger.Debug("Uplink received", "dev_eui", deviceInfo.DevEui, "payload", up.Object, "user", userId, "fport", strconv.FormatUint(uint64(up.FPort), 10))
-			err = controller.HandleEvent(gc.Request.Context(), userId, deviceInfo.DevEui, strconv.FormatUint(uint64(up.FPort), 10), up.Object)
+			log.Logger.Debug("Uplink received", "dev_eui", deviceInfo.DevEui, "payload", fmt.Sprintf("%#v", up.Object), "user", userId, "fport", strconv.FormatUint(uint64(up.FPort), 10))
+			err = controller.HandleEvent(gc.Request.Context(), userId, deviceInfo.DevEui, strconv.FormatUint(uint64(up.FPort), 10), up.Object, up.Time.AsTime())
 			if err != nil {
 				gc.Error(err)
 				return

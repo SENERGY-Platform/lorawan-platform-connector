@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
+	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/configuration"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/log"
 	platform_connector_lib "github.com/SENERGY-Platform/platform-connector-lib"
@@ -32,8 +33,9 @@ import (
 )
 
 const joinedAttributeKey = "lora/joined"
+const timeKey = "lora/time"
 
-func (c *Controller) HandleEvent(ctx context.Context, userId string, localDeviceId string, localServiceId string, payload any) error {
+func (c *Controller) HandleEvent(ctx context.Context, userId string, localDeviceId string, localServiceId string, payload any, ts time.Time) error {
 	token, err := c.connector.Security().GetCachedUserToken(userId, platform_connector_lib_model.RemoteInfo{})
 	if err != nil {
 		return err
@@ -54,7 +56,8 @@ func (c *Controller) HandleEvent(ctx context.Context, userId string, localDevice
 			if err != nil {
 				return err
 			}
-			event["payload"] = string(encoded)
+			event["data"] = string(encoded)
+			event[timeKey] = ts.Format(time.RFC3339Nano)
 			err = c.connector.HandleDeviceEventWithAuthToken(token, device.Id, service.Id, event, platform_connector_lib.SyncIdempotent)
 			if err != nil {
 				return err
@@ -154,7 +157,7 @@ func getConnector(ctx context.Context, config configuration.Config) (*platform_c
 
 		InitTopics: false,
 
-		LogLevel: config.LogLevel,
+		Logger: log.Logger,
 	})
 	if err != nil {
 		return nil, err
@@ -167,6 +170,15 @@ func getConnector(ctx context.Context, config configuration.Config) (*platform_c
 }
 
 func provideEventTime(msg platform_connector_lib.EventMsg) (platform_connector_lib.EventMsg, time.Time) {
-	log.Logger.Warn("event time extraction not implemented")
-	return msg, time.Now()
+	t, ok := msg[timeKey]
+	if !ok {
+		log.Logger.Error("no time in message", "message", fmt.Sprintf("%#v", msg))
+		return msg, time.Now()
+	}
+	ts, err := time.Parse(time.RFC3339Nano, t)
+	if err != nil {
+		log.Logger.Error("unable to parse time in message", attributes.ErrorKey, err, "message", fmt.Sprintf("%#v", msg))
+		return msg, time.Now()
+	}
+	return msg, ts
 }
