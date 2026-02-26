@@ -94,6 +94,32 @@ func postEvent(controller *controller.Controller) (string, string, gin.HandlerFu
 				gc.Error(err)
 				return
 			}
+		case "status":
+			var status integration.StatusEvent
+
+			err := unmarshalEvent(gc, &status)
+			if err != nil {
+				gc.Error(errors.Join(model.ErrBadRequest, fmt.Errorf("unable to parse request body"), err))
+				return
+			}
+			deviceInfo := status.GetDeviceInfo()
+			if deviceInfo == nil {
+				gc.Error(errors.Join(model.ErrBadRequest, fmt.Errorf("unable to parse request body"), fmt.Errorf("statusInfo is nil")))
+				return
+			}
+			log.Logger.Debug("Status received", "dev_eui", deviceInfo.DevEui, "user", userId)
+			data := map[string]any{
+				"external_power_source":     status.ExternalPowerSource,
+				"battery_level_unavailable": status.BatteryLevelUnavailable,
+				"battery_level":             status.BatteryLevel,
+			}
+			err = controller.HandleEvent(gc.Request.Context(), userId, deviceInfo.DevEui, "status", data, status.Time.AsTime())
+			if err != nil {
+				gc.Error(err)
+				return
+			}
+			return
+
 		default:
 			gc.Error(errors.Join(model.ErrBadRequest, fmt.Errorf("unknown event type "+event)))
 			return
