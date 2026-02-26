@@ -38,7 +38,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Event Type ('up'/'join')",
+                        "description": "Event Type ('up'/'join'/'status')",
                         "name": "event",
                         "in": "query",
                         "required": true

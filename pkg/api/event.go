@@ -41,7 +41,7 @@ import (
 // @Accept       application/x-protobuf
 // @Accept       application/octet-stream
 // @Param        X-UserId header string true "Platform User ID"
-// @Param        event query string true "Event Type ('up'/'join')"
+// @Param        event query string true "Event Type ('up'/'join'/'status')"
 // @Param        payload body []string true "requested values"
 // @Success      200 {object} string "status message (or null)"
 // @Failure      400
