@@ -19,6 +19,59 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/event": {
+            "post": {
+                "description": "Event endpoint to be called from chirpstack",
+                "consumes": [
+                    "application/json",
+                    "application/x-protobuf",
+                    "application/octet-stream"
+                ],
+                "summary": "Event",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Platform User ID",
+                        "name": "X-UserId",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Event Type ('up'/'join')",
+                        "name": "event",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "requested values",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "status message (or null)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
         "/provision": {
             "post": {
                 "description": "Runs the provision for a new user",
@@ -44,6 +97,34 @@ const docTemplate = `{
                         }
                     }
                 ],
+                "responses": {
+                    "200": {
+                        "description": "status message (or null)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/sync/users": {
+            "patch": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Syncs all users",
+                "tags": [
+                    "Sync"
+                ],
+                "summary": "Sync Users",
                 "responses": {
                     "200": {
                         "description": "status message (or null)",

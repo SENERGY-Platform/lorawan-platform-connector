@@ -37,7 +37,7 @@ func Start(ctx context.Context, config configuration.Config) (wg *sync.WaitGroup
 	}
 	err = controller.Sync()
 	if err != nil {
-		return wg, err
+		log.Logger.Warn("unable to sync", attributes.ErrorKey, err)
 	}
 	err = api.Start(ctx, wg, config, controller)
 	if err != nil {

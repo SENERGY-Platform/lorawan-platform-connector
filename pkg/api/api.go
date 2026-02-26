@@ -41,6 +41,7 @@ var routes = gin_mw.Routes[*controller.Controller]{
 	getSwaggerDoc,
 	postProvision,
 	postEvent,
+	patchSyncAllUsers,
 }
 
 // Start godoc

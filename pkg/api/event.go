@@ -46,7 +46,7 @@ import (
 // @Success      200 {object} string "status message (or null)"
 // @Failure      400
 // @Failure      500
-// @Router       /provision [POST]
+// @Router       /event [POST]
 func postEvent(controller *controller.Controller) (string, string, gin.HandlerFunc) {
 	return http.MethodPost, model.EventPath, func(gc *gin.Context) {
 		userId := gc.GetHeader("X-UserId")

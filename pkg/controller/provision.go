@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v13"
-	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/log"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/model"
 	"google.golang.org/grpc/codes"
@@ -138,12 +137,13 @@ func (c *Controller) ProvisionUser(ctx context.Context, chirpUserId string, user
 	return nil
 }
 
-func (c *Controller) ProvisionAllUsers() error {
+func (c *Controller) ProvisionAllUsers() (err error) {
 	getUsersCtx, getUsersCf := context.WithTimeout(context.Background(), 10*time.Second)
 	defer getUsersCf()
 	c.jwtMux.RLock()
 	kcUsers, err := c.gocloakClient.GetUsers(getUsersCtx, c.jwt.AccessToken, "master", gocloak.GetUsersParams{})
 	c.jwtMux.RUnlock()
+	mux := sync.Mutex{}
 	if err != nil {
 		return err
 	}
@@ -151,15 +151,17 @@ func (c *Controller) ProvisionAllUsers() error {
 	for _, kcUser := range kcUsers {
 		wg.Go(func() {
 			provisionCtx, provisionCf := context.WithTimeout(context.Background(), 10*time.Second)
-			err = c.ProvisionUser(provisionCtx, "", model.UserInfoFromUser(kcUser))
-			if err != nil {
-				log.Logger.Warn("unable to provision user", "user", *kcUser.Username, attributes.ErrorKey, err)
+			err2 := c.ProvisionUser(provisionCtx, "", model.UserInfoFromUser(kcUser))
+			if err2 != nil {
+				mux.Lock()
+				err = errors.Join(err, fmt.Errorf("unable to provision user %s", *kcUser.Username), err2)
+				mux.Unlock()
 			}
 			provisionCf()
 		})
 	}
 	wg.Wait()
-	return nil
+	return err
 }
 
 func (c *Controller) DeleteUser(ctx context.Context, email string) error {
@@ -211,6 +213,7 @@ func (c *Controller) DeleteOutdatedUsers() error {
 		offset += limit
 	}
 	wg := sync.WaitGroup{}
+	mux := sync.Mutex{}
 
 	for _, chirpUser := range chirpUsers {
 		if slices.Contains(c.config.ChirpstackProtectedUsers, chirpUser.Email) {
@@ -233,16 +236,18 @@ func (c *Controller) DeleteOutdatedUsers() error {
 			}
 			// no matching keycloak user exists
 			ctx, cf = context.WithTimeout(context.Background(), 10*time.Second)
-			err = c.DeleteUser(ctx, chirpUser.Email)
+			err2 := c.DeleteUser(ctx, chirpUser.Email)
 			cf()
-			if err != nil {
-				log.Logger.Warn("unable to delete chirpstack user", "user", chirpUser.Email, attributes.ErrorKey, err)
+			if err2 != nil {
+				mux.Lock()
+				err = errors.Join(err, fmt.Errorf("unable to delete chirpstack user %s", chirpUser.Email), err2)
+				mux.Unlock()
 				return
 			}
 		})
 	}
 	wg.Wait()
-	return nil
+	return err
 }
 
 func (c *Controller) createTenant(ctx context.Context, email string) (tenant *api.CreateTenantResponse, err error) {
