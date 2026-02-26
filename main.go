@@ -43,7 +43,7 @@ func main() {
 		ChirpstackProtectedUsers: []string{
 			"admin",
 		},
-		KafkaBootstrap:   "kafka:9092",
+		KafkaBootstrap:   "kafka.kafka:9092",
 		DeviceRepoUrl:    "http://api.device-repository:8080",
 		PermissionsV2Url: "http://permv2.permissions:8080",
 		MemcachedUrl:     "memcached:11211",
