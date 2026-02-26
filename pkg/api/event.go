@@ -39,6 +39,7 @@ import (
 // @Description  Event endpoint to be called from chirpstack
 // @Accept       json
 // @Accept       application/x-protobuf
+// @Accept       application/octet-stream
 // @Param        X-UserId header string true "Platform User ID"
 // @Param        event query string true "Event Type ('up'/'join')"
 // @Param        payload body []string true "requested values"
@@ -108,6 +109,8 @@ func unmarshalEvent(gc *gin.Context, v proto.Message) error {
 	}
 	switch gc.ContentType() {
 	case "application/x-protobuf":
+		fallthrough
+	case "application/octet-stream":
 		return proto.Unmarshal(body, v)
 	case "application/json":
 		return protojson.Unmarshal(body, v)
