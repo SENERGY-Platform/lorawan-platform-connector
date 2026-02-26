@@ -19,3 +19,13 @@ package model
 const EventPath = "/event"
 const ProtocolSegmentData = "data"
 const ProtocolSegmentFPort = "fPort"
+const DeviceTypeAttributeManagedByKey = "senergy/managed-by"
+const DeviceTypeAttributeManagedByValue = "lorawan-platform-connector"
+const DeviceTypeAttributeDeviceProfileIdKey = "senergy/lora/device-profile-id"
+
+const DeviceAttributeDevAddr = "senergy/lora/dev-addr"
+const DeviceAttributeAppSKey = "senergy/lora/app-key"
+const DeviceAttributeNwkSEncKey = "senergy/lora/nwk-enc-key"
+const DeviceAttributeSNwkSIntKey = "senergy/lora/s-nwk-int-key"
+const DeviceAttributeFNwkSIntKey = "senergy/lora/f-nwk-int-key"
+const DeviceAttributeJoinEuiKey = "senergy/lora/join-eui"

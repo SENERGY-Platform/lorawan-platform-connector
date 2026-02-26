@@ -29,6 +29,7 @@ func (c *Controller) Sync() (err error) {
 	return errors.Join(
 		c.ProvisionAllUsers(),
 		c.DeleteOutdatedUsers(),
+		c.SyncAllDevices(),
 	)
 }
 

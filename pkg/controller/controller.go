@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v13"
+	device_repo "github.com/SENERGY-Platform/device-repository/lib/client"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/configuration"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/log"
 	platform_connector_lib "github.com/SENERGY-Platform/platform-connector-lib"
@@ -32,15 +33,17 @@ import (
 )
 
 type Controller struct {
-	config          configuration.Config
-	chirpUserClient api.UserServiceClient
-	chirpTenant     api.TenantServiceClient
-	chirpApp        api.ApplicationServiceClient
-	chirpDevice     api.DeviceServiceClient
-	gocloakClient   *gocloak.GoCloak
-	jwt             *gocloak.JWT
-	jwtMux          sync.RWMutex
-	connector       *platform_connector_lib.Connector
+	config             configuration.Config
+	chirpUserClient    api.UserServiceClient
+	chirpTenant        api.TenantServiceClient
+	chirpApp           api.ApplicationServiceClient
+	chirpDevice        api.DeviceServiceClient
+	chirpDeviceProfile api.DeviceProfileServiceClient
+	gocloakClient      *gocloak.GoCloak
+	jwt                *gocloak.JWT
+	jwtMux             sync.RWMutex
+	connector          *platform_connector_lib.Connector
+	deviceRepo         device_repo.Interface
 }
 
 func New(config configuration.Config, ctx context.Context) (*Controller, error) {
@@ -54,6 +57,7 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 	chirpTenant := api.NewTenantServiceClient(conn)
 	chirpApp := api.NewApplicationServiceClient(conn)
 	chirpDevice := api.NewDeviceServiceClient(conn)
+	chirpDeviceProfile := api.NewDeviceProfileServiceClient(conn)
 
 	// test connection
 	gocloakCtx, chirpCf := context.WithTimeout(ctx, 10*time.Second)
@@ -73,15 +77,21 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 	}
 	// create controller
 	controller := &Controller{
-		config:          config,
-		chirpUserClient: chirpUserClient,
-		chirpTenant:     chirpTenant,
-		chirpApp:        chirpApp,
-		chirpDevice:     chirpDevice,
-		jwt:             jwt,
-		gocloakClient:   gocloakClient,
-		jwtMux:          sync.RWMutex{},
+		config:             config,
+		chirpUserClient:    chirpUserClient,
+		chirpTenant:        chirpTenant,
+		chirpApp:           chirpApp,
+		chirpDevice:        chirpDevice,
+		chirpDeviceProfile: chirpDeviceProfile,
+		jwt:                jwt,
+		gocloakClient:      gocloakClient,
+		jwtMux:             sync.RWMutex{},
 	}
+	controller.deviceRepo = device_repo.NewClient(config.DeviceRepoUrl, func() (token string, err error) {
+		controller.jwtMux.RLock()
+		defer controller.jwtMux.RUnlock()
+		return controller.jwt.AccessToken, nil
+	})
 	controller.setupSync(ctx)
 
 	// setup token refresh

@@ -91,23 +91,9 @@ func (c *Controller) ProvisionUser(ctx context.Context, chirpUserId string, user
 	}
 
 	// get app id
-	appList, err := c.chirpApp.List(ctx, &api.ListApplicationsRequest{TenantId: tenantId, Search: appName, Limit: 2})
+	appId, err := c.getOrCreateChirpstackAppId(ctx, tenantId)
 	if err != nil {
 		return err
-	}
-
-	var appId string
-	if len(appList.Result) == 0 {
-		app, err := c.createApp(ctx, tenantId)
-		if err != nil {
-			return err
-		}
-		appId = app.Id
-	} else if len(appList.Result) > 1 {
-		log.Logger.Error("found multiple apps", "tenant_id", tenantId)
-		return fmt.Errorf("found multiple apps")
-	} else {
-		appId = appList.Result[0].Id
 	}
 
 	// update or create integration
@@ -338,4 +324,24 @@ func (c *Controller) getOrCreateChirpstackTenantId(ctx context.Context, email st
 	}
 	return tenants[0].Id, nil
 
+}
+
+func (c *Controller) getOrCreateChirpstackAppId(ctx context.Context, tenantId string) (string, error) {
+	appList, err := c.chirpApp.List(ctx, &api.ListApplicationsRequest{TenantId: tenantId, Search: appName, Limit: 2})
+	if err != nil {
+		return "", err
+	}
+
+	if len(appList.Result) == 0 {
+		app, err := c.createApp(ctx, tenantId)
+		if err != nil {
+			return "", err
+		}
+		return app.Id, nil
+	} else if len(appList.Result) > 1 {
+		log.Logger.Error("found multiple apps", "tenant_id", tenantId)
+		return "", fmt.Errorf("found multiple apps")
+	} else {
+		return appList.Result[0].Id, nil
+	}
 }

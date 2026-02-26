@@ -21,9 +21,12 @@ require (
 	github.com/Knetic/govaluate v3.0.0+incompatible // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/RyanCarrier/dijkstra v1.4.0 // indirect
+	github.com/SENERGY-Platform/api-docs-provider/lib/client v0.0.3 // indirect
+	github.com/SENERGY-Platform/api-docs-provider/lib/models v0.0.3 // indirect
 	github.com/SENERGY-Platform/converter v0.0.10 // indirect
 	github.com/SENERGY-Platform/developer-notifications v0.0.4 // indirect
-	github.com/SENERGY-Platform/device-repository v0.2.36 // indirect
+	github.com/SENERGY-Platform/device-repository v0.2.39 // indirect
+	github.com/SENERGY-Platform/go-base-http-client v0.1.0 // indirect
 	github.com/SENERGY-Platform/models/go v0.0.0-20251202070403-e7e5579f7111 // indirect
 	github.com/SENERGY-Platform/permissions-v2 v0.0.40 // indirect
 	github.com/SENERGY-Platform/service-commons v0.0.0-20260106114257-16bca4ba28e7 // indirect
