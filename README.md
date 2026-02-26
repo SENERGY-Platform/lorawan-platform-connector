@@ -6,7 +6,6 @@ Architecture diagram:
 
 ## TODOs
 
-- Request forwarding
 - Device sync
 - Gateway sync
 - Device Type (profile) sync

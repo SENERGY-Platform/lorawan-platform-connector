@@ -17,3 +17,5 @@
 package model
 
 const EventPath = "/event"
+const ProtocolSegmentData = "data"
+const ProtocolSegmentFPort = "fPort"

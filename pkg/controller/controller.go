@@ -36,6 +36,7 @@ type Controller struct {
 	chirpUserClient api.UserServiceClient
 	chirpTenant     api.TenantServiceClient
 	chirpApp        api.ApplicationServiceClient
+	chirpDevice     api.DeviceServiceClient
 	gocloakClient   *gocloak.GoCloak
 	jwt             *gocloak.JWT
 	jwtMux          sync.RWMutex
@@ -52,6 +53,7 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 	chirpUserClient := api.NewUserServiceClient(conn)
 	chirpTenant := api.NewTenantServiceClient(conn)
 	chirpApp := api.NewApplicationServiceClient(conn)
+	chirpDevice := api.NewDeviceServiceClient(conn)
 
 	// test connection
 	gocloakCtx, chirpCf := context.WithTimeout(ctx, 10*time.Second)
@@ -70,7 +72,16 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 		return nil, err
 	}
 	// create controller
-	controller := &Controller{config: config, chirpUserClient: chirpUserClient, chirpTenant: chirpTenant, chirpApp: chirpApp, jwt: jwt, gocloakClient: gocloakClient, jwtMux: sync.RWMutex{}}
+	controller := &Controller{
+		config:          config,
+		chirpUserClient: chirpUserClient,
+		chirpTenant:     chirpTenant,
+		chirpApp:        chirpApp,
+		chirpDevice:     chirpDevice,
+		jwt:             jwt,
+		gocloakClient:   gocloakClient,
+		jwtMux:          sync.RWMutex{},
+	}
 	controller.setupSync(ctx)
 
 	// setup token refresh
@@ -96,7 +107,7 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 
 	// create connector
 	if config.KafkaBootstrap != "" {
-		controller.connector, err = getConnector(ctx, config)
+		err = controller.initConnector(ctx, config)
 		if err != nil {
 			return nil, err
 		}
