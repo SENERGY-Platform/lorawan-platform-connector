@@ -16,7 +16,10 @@
 
 package model
 
-import "github.com/Nerzal/gocloak/v13"
+import (
+	"github.com/Nerzal/gocloak/v13"
+	"github.com/SENERGY-Platform/models/go/models"
+)
 
 type UserInfo struct {
 	PreferredUsername *string `json:"preferred_username"`
@@ -38,4 +41,19 @@ func UserInfoFromGocloakUserInfo(u *gocloak.UserInfo) *UserInfo {
 		Email:             u.Email,
 		Sub:               u.Sub,
 	}
+}
+
+type Command = string
+
+const (
+	PutCommand    Command = "PUT"
+	DeleteCommand Command = "DELETE"
+	RightsCommand Command = "RIGHTS"
+)
+
+type DeviceCommand struct {
+	Command Command       `json:"command"`
+	Id      string        `json:"id"`
+	Owner   string        `json:"owner"`
+	Device  models.Device `json:"device"`
 }

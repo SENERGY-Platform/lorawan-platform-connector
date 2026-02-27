@@ -92,7 +92,10 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 		defer controller.jwtMux.RUnlock()
 		return controller.jwt.AccessToken, nil
 	})
-	controller.setupSync(ctx)
+	err = controller.setupSync(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	// setup token refresh
 	go func() {

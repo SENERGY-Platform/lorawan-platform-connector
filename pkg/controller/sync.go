@@ -30,10 +30,15 @@ func (c *Controller) Sync() (err error) {
 		c.ProvisionAllUsers(),
 		c.DeleteOutdatedUsers(),
 		c.SyncAllDevices(),
+		c.DeleteOutdatedDevices(),
 	)
 }
 
-func (c *Controller) setupSync(ctx context.Context) {
+func (c *Controller) setupSync(ctx context.Context) error {
+	err := c.setupEventSyncDevice(ctx)
+	if err != nil {
+		return err
+	}
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()
 	go func() {
@@ -50,4 +55,5 @@ func (c *Controller) setupSync(ctx context.Context) {
 			}
 		}
 	}()
+	return nil
 }
