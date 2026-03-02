@@ -6,7 +6,6 @@ Architecture diagram:
 
 ## TODOs
 
-- Device sync (remaining: test kafka sync)
 - Gateway sync
 - Device Type (profile) sync
 - Event based user deletion

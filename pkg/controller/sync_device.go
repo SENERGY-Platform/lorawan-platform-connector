@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -30,6 +31,7 @@ import (
 
 	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
 	"github.com/SENERGY-Platform/platform-connector-lib/kafka"
+	platform_connector_lib_model "github.com/SENERGY-Platform/platform-connector-lib/model"
 	"github.com/SENERGY-Platform/service-commons/pkg/cache"
 
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/log"
@@ -58,6 +60,26 @@ func (c *Controller) SyncDevice(ctx context.Context, platformDevice *models.Exte
 	if getErr != nil && status.Code(getErr) != codes.NotFound {
 		return getErr
 	}
+	if chirpDevice != nil && chirpDevice.Device.ApplicationId != newChirpDevice.ApplicationId {
+		// device exists but in different application
+		log.Logger.Warn("device exists in different application", "device_id", platformDevice.Id, "local_id", platformDevice.LocalId, "existing_chirp_app_id", chirpDevice.Device.ApplicationId, "new_chirp_app_id", newChirpDevice.ApplicationId)
+		updated := model.UpsertAttribute(models.Attribute{
+			Key:    model.DeviceAttributeDuplicateKey,
+			Value:  "true",
+			Origin: model.DeviceAttributeOrigin,
+		}, &platformDevice.Device)
+		if !updated {
+			// attribute already exists with same value, nothing to update
+			return nil
+		}
+		token, err := c.connector.Security().GetCachedUserToken(platformDevice.OwnerId, platform_connector_lib_model.RemoteInfo{})
+		if err != nil {
+			return err
+		}
+		_, err = c.connector.IotCache.UpdateDevice(token, platformDevice.Device)
+
+		return err
+	}
 
 	deviceProfile, err := c.chirpDeviceProfile.Get(ctx, &api.GetDeviceProfileRequest{
 		Id: newChirpDevice.DeviceProfileId,
@@ -69,12 +91,12 @@ func (c *Controller) SyncDevice(ctx context.Context, platformDevice *models.Exte
 	deviceNeedsCreate := status.Code(getErr) == codes.NotFound
 	var existingActivation *api.DeviceActivation
 	var existingKeys *api.DeviceKeys
-	deviceNeedsKeyCreation := false
+	deviceNeedsKeyCreation := deviceNeedsCreate
 	if !deviceNeedsCreate {
 		activationResp, err := c.chirpDevice.GetActivation(ctx, &api.GetDeviceActivationRequest{
 			DevEui: platformDevice.LocalId,
 		})
-		if status.Code(err) == codes.NotFound || activationResp == nil || activationResp.DeviceActivation == nil {
+		if newKeys != nil && (status.Code(err) == codes.NotFound || activationResp == nil || activationResp.DeviceActivation == nil) {
 			deviceNeedsKeyCreation = true
 		} else if err != nil {
 			return err
@@ -93,16 +115,20 @@ func (c *Controller) SyncDevice(ctx context.Context, platformDevice *models.Exte
 		}
 	}
 
+	deviceNeedsKeyCreation = deviceNeedsKeyCreation && newKeys != nil
 	deviceNeedsUpdate := !deviceNeedsCreate && chirpDevice.Device.Name != name
-	deviceNeedsKeyUpdate := deviceNeedsCreate || (deviceProfile.DeviceProfile.SupportsOtaa && (existingKeys == nil || !reflect.DeepEqual(existingKeys, newKeys)))
-	deviceNeedsActivation := deviceNeedsCreate || (newActivation != nil && !reflect.DeepEqual(existingActivation, newActivation))
+	deviceNeedsKeyUpdate := newKeys != nil && !deviceNeedsKeyCreation && (deviceNeedsCreate || (deviceProfile.DeviceProfile.SupportsOtaa && (existingKeys == nil || !reflect.DeepEqual(existingKeys, newKeys))))
+	deviceNeedsActivation := newActivation != nil && (deviceNeedsCreate || !reflect.DeepEqual(existingActivation, newActivation))
+
+	log.Logger.Debug("syncing device", "device.id", platformDevice.Id, "device.local_id", platformDevice.LocalId, "device.name", name, "device_needs_create", deviceNeedsCreate, "device_needs_update", deviceNeedsUpdate, "device_needs_key_creation", deviceNeedsKeyCreation, "device_needs_key_update", deviceNeedsKeyUpdate, "device_needs_activation", deviceNeedsActivation)
 
 	if !deviceNeedsActivation && !deviceNeedsCreate && !deviceNeedsUpdate && !deviceNeedsKeyUpdate {
 		return nil // nothing to do
 	}
 
+	cuCtx, cuCf := context.WithTimeout(ctx, 10*time.Second)
 	if deviceNeedsCreate {
-		_, err = c.chirpDevice.Create(ctx, &api.CreateDeviceRequest{
+		_, err = c.chirpDevice.Create(cuCtx, &api.CreateDeviceRequest{
 			Device: newChirpDevice,
 		})
 	} else if deviceNeedsUpdate {
@@ -110,28 +136,30 @@ func (c *Controller) SyncDevice(ctx context.Context, platformDevice *models.Exte
 			Device: newChirpDevice,
 		})
 	}
+	cuCf()
 	if err != nil {
 		return err
 	}
+	keyCtx, keyCf := context.WithTimeout(ctx, 10*time.Second)
 	if deviceNeedsKeyCreation {
-		_, err = c.chirpDevice.CreateKeys(ctx, &api.CreateDeviceKeysRequest{
+		_, err = c.chirpDevice.CreateKeys(keyCtx, &api.CreateDeviceKeysRequest{
 			DeviceKeys: newKeys,
 		})
-		if err != nil {
-			return err
-		}
 	} else if deviceNeedsKeyUpdate {
-		_, err = c.chirpDevice.UpdateKeys(ctx, &api.UpdateDeviceKeysRequest{
+		_, err = c.chirpDevice.UpdateKeys(keyCtx, &api.UpdateDeviceKeysRequest{
 			DeviceKeys: newKeys,
 		})
-		if err != nil {
-			return err
-		}
+	}
+	keyCf()
+	if err != nil {
+		return err
 	}
 	if deviceNeedsActivation {
-		_, err = c.chirpDevice.Activate(ctx, &api.ActivateDeviceRequest{
+		activateCtx, activateCf := context.WithTimeout(ctx, 10*time.Second)
+		_, err = c.chirpDevice.Activate(activateCtx, &api.ActivateDeviceRequest{
 			DeviceActivation: newActivation,
 		})
+		activateCf()
 		if err != nil {
 			return err
 		}
@@ -362,7 +390,7 @@ func (c *Controller) setupEventSyncDevice(ctx context.Context) error {
 				return err
 			}
 			if len(devices) != 1 {
-				return fmt.Errorf("got unexpected list of devices, expected length to be 1", "device_id", command.Device.Id)
+				return fmt.Errorf("got unexpected list of devices, expected length to be 1, device_id: %s", command.Device.Id)
 			}
 			if !deviceTypeManagedByLorawanPlatformConnector(*devices[0].DeviceType) {
 				return nil
@@ -373,7 +401,41 @@ func (c *Controller) setupEventSyncDevice(ctx context.Context) error {
 		case model.DeleteCommand:
 			ctx2, cf := context.WithTimeout(ctx, 10*time.Second)
 			defer cf()
-			_, err := c.chirpDevice.Delete(ctx2, &api.DeleteDeviceRequest{
+			log.Logger.Debug("deleting device", "device_id", command.Device.Id, "local_id", command.Device.LocalId)
+			chirpDevice, err := c.chirpDevice.Get(ctx2, &api.GetDeviceRequest{
+				DevEui: command.Device.LocalId,
+			})
+			// if device not found, nothing to do
+			if err != nil && status.Code(err) == codes.NotFound {
+				return nil
+			} else if err != nil {
+				return err
+			}
+
+			// get user info
+			c.jwtMux.RLock()
+			user, err := c.gocloakClient.GetUserByID(ctx2, c.jwt.AccessToken, "master", command.Device.OwnerId)
+			c.jwtMux.RUnlock()
+			if err != nil {
+				return err
+			}
+			if user.Email == nil || *user.Email == "" {
+				// user has no email, cannot determine tenant
+				return nil
+			}
+			tenant, err := c.getOrCreateChirpstackTenantId(ctx2, *user.Email)
+			if err != nil {
+				return err
+			}
+			applicationId, err := c.getOrCreateChirpstackAppId(ctx2, tenant)
+			if err != nil {
+				return err
+			}
+			if applicationId != chirpDevice.Device.ApplicationId {
+				return nil // device is in different application, do not delete
+			}
+
+			_, err = c.chirpDevice.Delete(ctx2, &api.DeleteDeviceRequest{
 				DevEui: command.Device.LocalId,
 			})
 			if err != nil && status.Code(err) != codes.NotFound {
@@ -450,25 +512,26 @@ func (c *Controller) prepareChirpDevice(ctx context.Context, platformDevice *mod
 	}
 
 	for _, a := range platformDevice.Attributes {
+		value := strings.ToLower(a.Value)
 		switch a.Key {
 		case model.DeviceAttributeDevAddr:
-			activation.DevAddr = a.Value
+			activation.DevAddr = value
 		case model.DeviceAttributeAppSKey:
-			activation.AppSKey = a.Value
+			activation.AppSKey = value
 		case model.DeviceAttributeNwkSEncKey:
-			activation.NwkSEncKey = a.Value
+			activation.NwkSEncKey = value
 		case model.DeviceAttributeSNwkSIntKey:
-			activation.SNwkSIntKey = a.Value
+			activation.SNwkSIntKey = value
 		case model.DeviceAttributeFNwkSIntKey:
-			activation.FNwkSIntKey = a.Value
+			activation.FNwkSIntKey = value
 		case model.DeviceAttributeJoinEuiKey:
-			device.JoinEui = a.Value
+			device.JoinEui = value
 		case model.DeviceAttributeAppKey:
-			keys.AppKey = a.Value
+			keys.AppKey = value
 		case model.DeviceAttributeGenAppKey:
-			keys.GenAppKey = a.Value
+			keys.GenAppKey = value
 		case model.DeviceAttributeNwkKey:
-			keys.NwkKey = a.Value
+			keys.NwkKey = value
 		default:
 			continue
 		}
@@ -476,6 +539,10 @@ func (c *Controller) prepareChirpDevice(ctx context.Context, platformDevice *mod
 
 	if activation.DevAddr == "" && activation.AppSKey == "" && activation.NwkSEncKey == "" && activation.SNwkSIntKey == "" && activation.FNwkSIntKey == "" && activation.FCntUp == 0 && activation.NFCntDown == 0 && activation.AFCntDown == 0 {
 		activation = nil
+	}
+
+	if keys.AppKey == "00000000000000000000000000000000" && keys.GenAppKey == "00000000000000000000000000000000" && keys.NwkKey == "00000000000000000000000000000000" {
+		keys = nil
 	}
 
 	return device, activation, keys, nil

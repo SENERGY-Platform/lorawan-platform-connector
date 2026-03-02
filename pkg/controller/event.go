@@ -30,7 +30,6 @@ import (
 	platform_connector_lib_model "github.com/SENERGY-Platform/platform-connector-lib/model"
 )
 
-const joinedAttributeKey = "lora/joined"
 const timeKey = "lora/time"
 
 func (c *Controller) HandleEvent(ctx context.Context, userId string, localDeviceId string, localServiceId string, payload any, ts time.Time) error {
@@ -76,18 +75,11 @@ func (c *Controller) AnnotateDeviceJoined(ctx context.Context, userId string, lo
 	if err != nil {
 		return err
 	}
-	found := false
-	for i := range device.Attributes {
-		if device.Attributes[i].Key == joinedAttributeKey {
-			device.Attributes[i].Value = "true"
-		}
-	}
-	if !found {
-		device.Attributes = append(device.Attributes, platform_connector_lib_model.Attribute{
-			Key:   joinedAttributeKey,
-			Value: "true",
-		})
-	}
+	model.UpsertAttribute(platform_connector_lib_model.Attribute{
+		Key:    model.DeviceAttributeJoinedKey,
+		Value:  "true",
+		Origin: model.DeviceAttributeOrigin,
+	}, &device)
 	_, err = c.connector.IotCache.UpdateDevice(token, device)
 	return err
 }
