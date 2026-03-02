@@ -8,7 +8,6 @@ Architecture diagram:
 
 - Gateway sync
 - Device Type (profile) sync
-  - Automatic output field creation
   - Event based (redis stream)
 - Event based user deletion
 

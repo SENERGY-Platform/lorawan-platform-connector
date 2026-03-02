@@ -26,6 +26,7 @@ import (
 	"time"
 
 	device_repo_model "github.com/SENERGY-Platform/device-repository/lib/model"
+	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/log"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/model"
 	"github.com/SENERGY-Platform/models/go/models"
 	"github.com/chirpstack/chirpstack/api/go/v4/api"
@@ -108,6 +109,66 @@ func (c *Controller) SyncAllDeviceProfiles() (err error) {
 	}
 	wg.Wait()
 	return err
+}
+
+func (c *Controller) ensureSyncedService(dt models.DeviceType, localServiceId string, event any) (serviceId string, err error) {
+	service := &models.Service{
+		Id:          "",
+		LocalId:     localServiceId,
+		Interaction: models.EVENT,
+		Name:        fmt.Sprintf("Event %s", localServiceId),
+		ProtocolId:  c.config.ProtocolId,
+		Outputs: []models.Content{{
+			Serialization:     models.JSON,
+			ProtocolSegmentId: c.config.ProtocolDataSegmentId,
+		}},
+	}
+	var base *models.ContentVariable
+	found := -1
+	for i, s := range dt.Services {
+		if s.LocalId == localServiceId && s.ProtocolId == c.config.ProtocolId && s.Interaction == models.EVENT {
+			service.Id = s.Id
+			if len(s.Outputs) > 0 {
+				base = &s.Outputs[0].ContentVariable
+				service.Outputs[0].Id = s.Outputs[0].Id
+				service.Name = s.Name
+				service.Description = s.Description
+				service.Attributes = s.Attributes
+				service.ServiceGroupKey = s.ServiceGroupKey
+			}
+			dt.Services[i] = *service
+			found = i
+			break
+		}
+	}
+	cv := prepareContentVariable(&event, base)
+	if cv == nil {
+		return service.Id, nil
+	}
+
+	if base != nil && reflect.DeepEqual(*base, *cv) {
+		return service.Id, nil
+	}
+	service.Outputs[0].ContentVariable = *cv
+	if found == -1 {
+		dt.Services = append(dt.Services, *service)
+	} else {
+		dt.Services[found] = *service
+	}
+	token, err := c.connector.Security().Access()
+	if err != nil {
+		return "", err
+	}
+	dt, err = c.connector.IotCache.UpdateDeviceType(token, dt)
+	if err != nil {
+		return "", err
+	}
+	for _, s := range dt.Services {
+		if s.LocalId == localServiceId {
+			return s.Id, nil
+		}
+	}
+	return "", fmt.Errorf("service %s not found after update", localServiceId)
 }
 
 func containsRegion(profile *api.DeviceProfileListItem, i []int32) bool {
@@ -344,4 +405,133 @@ func contentVariableNeedsUpdate(existing *models.ContentVariable, new *models.Co
 		}
 	}
 	return false
+}
+
+func prepareContentVariable(val *any, base *models.ContentVariable) *models.ContentVariable {
+	if val == nil {
+		return nil
+	}
+	t := inferModelFromValue(*val)
+	if t == nil {
+		return nil
+	}
+	cv := &models.ContentVariable{
+		Name: "root",
+		Type: *t,
+	}
+	if base != nil {
+		cv.Id = base.Id
+		cv.IsVoid = base.IsVoid
+		cv.OmitEmpty = base.OmitEmpty
+		cv.Value = base.Value
+		cv.CharacteristicId = base.CharacteristicId
+		cv.AspectId = base.AspectId
+		cv.FunctionId = base.FunctionId
+		cv.OmitEmpty = base.OmitEmpty
+		cv.SerializationOptions = base.SerializationOptions
+		cv.UnitReference = base.UnitReference
+	}
+
+	if *t == models.Structure {
+		m, ok := (*val).(map[string]any)
+		if !ok {
+			log.Logger.Warn("unable to cast value to map[string]any for structure content variable", "value", fmt.Sprintf("%v", *val))
+			return cv
+		}
+		remainingBaseSubs := map[int]any{}
+		if base != nil {
+			for i := range base.SubContentVariables {
+				remainingBaseSubs[i] = nil
+			}
+		}
+
+		for key, value := range m {
+			var baseSub *models.ContentVariable
+			if base != nil {
+				for i, sub := range base.SubContentVariables {
+					if sub.Name == key {
+						baseSub = &sub
+						delete(remainingBaseSubs, i)
+						break
+					}
+				}
+			}
+			sub := prepareContentVariable(&value, baseSub)
+			if sub == nil {
+				continue
+			}
+			sub.Name = key
+			cv.SubContentVariables = append(cv.SubContentVariables, *sub)
+		}
+		if base != nil {
+			for i := range remainingBaseSubs {
+				// add remaining sub content variables from base that were not in the new value
+				cv.SubContentVariables = append(cv.SubContentVariables, base.SubContentVariables[i])
+			}
+
+		}
+	} else if *t == models.List {
+		s, ok := (*val).([]any)
+		if !ok {
+			log.Logger.Warn("unable to cast value to []any for list content variable", "value", fmt.Sprintf("%v", *val))
+			return cv
+		}
+		remainingBaseSubs := map[int]any{}
+		if base != nil {
+			for i := range base.SubContentVariables {
+				remainingBaseSubs[i] = nil
+			}
+		}
+		for i, v := range s {
+			var baseSub *models.ContentVariable
+			if base != nil {
+				for i, sub := range base.SubContentVariables {
+					if sub.Name == fmt.Sprintf("%d", i) {
+						baseSub = &sub
+						delete(remainingBaseSubs, i)
+						break
+					}
+				}
+			}
+			sub := prepareContentVariable(&v, baseSub)
+			if sub == nil {
+				continue
+			}
+			sub.Name = fmt.Sprintf("%d", i)
+			cv.SubContentVariables = append(cv.SubContentVariables, *sub)
+		}
+		if base != nil {
+			// add remaining sub content variables from base that were not in the new value
+			for i := range remainingBaseSubs {
+				cv.SubContentVariables = append(cv.SubContentVariables, base.SubContentVariables[i])
+			}
+		}
+	}
+	return cv
+}
+
+func inferModelFromValue(value any) *models.Type {
+	switch value.(type) {
+	case map[string]any:
+		s := models.Structure
+		return &s
+	case []any:
+		s := models.List
+		return &s
+	case string:
+		s := models.String
+		return &s
+	case int64, int, int16, int32, int8, uint32, uint64, uint16, uint8, uint:
+		s := models.Integer
+		return &s
+	case float64, float32:
+		s := models.Float
+		return &s
+	case bool:
+		s := models.Boolean
+		return &s
+	default:
+		log.Logger.Warn("unable to get models.Type from golang type", "golang_type", fmt.Sprintf("%v", value))
+		return nil
+	}
 }

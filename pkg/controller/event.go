@@ -46,24 +46,29 @@ func (c *Controller) HandleEvent(ctx context.Context, userId string, localDevice
 		return err
 	}
 
-	for _, service := range deviceType.Services {
-		if service.LocalId == localServiceId {
-			event := platform_connector_lib.EventMsg{}
-			encoded, err := json.Marshal(payload)
-			if err != nil {
-				return err
-			}
-			event[model.ProtocolSegmentData] = string(encoded)
-			event[timeKey] = ts.Format(time.RFC3339Nano)
-			err = c.connector.HandleDeviceEventWithAuthToken(token, device.Id, service.Id, event, platform_connector_lib.SyncIdempotent)
-			if err != nil {
-				return err
-			}
-			return nil
-		}
+	event := platform_connector_lib.EventMsg{}
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	event[model.ProtocolSegmentData] = string(encoded)
+	event[timeKey] = ts.Format(time.RFC3339Nano)
+
+	var jsoned any
+	err = json.Unmarshal(encoded, &jsoned)
+	if err != nil {
+		return err
 	}
 
-	return fmt.Errorf("service %s not found", localServiceId)
+	serviceId, err := c.ensureSyncedService(deviceType, localServiceId, jsoned)
+	if err != nil {
+		return err
+	}
+	err = c.connector.HandleDeviceEventWithAuthToken(token, device.Id, serviceId, event, platform_connector_lib.SyncIdempotent)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *Controller) AnnotateDeviceJoined(ctx context.Context, userId string, localDeviceId string) error {
