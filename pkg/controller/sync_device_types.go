@@ -21,16 +21,21 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 	"strconv"
 	"sync"
 	"time"
 
 	device_repo_model "github.com/SENERGY-Platform/device-repository/lib/model"
+	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/log"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/model"
 	"github.com/SENERGY-Platform/models/go/models"
 	"github.com/chirpstack/chirpstack/api/go/v4/api"
 	"github.com/chirpstack/chirpstack/api/go/v4/common"
+	"github.com/chirpstack/chirpstack/api/go/v4/stream"
+	"github.com/go-redis/redis/v8"
+	"google.golang.org/protobuf/proto"
 )
 
 func (c *Controller) SyncDeviceProfile(ctx context.Context, listItem *api.DeviceProfileListItem, profile *api.DeviceProfile) error {
@@ -43,9 +48,11 @@ func (c *Controller) SyncDeviceProfile(ctx context.Context, listItem *api.Device
 	if err != nil {
 		return err
 	}
+	found := false
 	for _, deviceType := range deviceTypes {
 		for _, attribute := range deviceType.Attributes {
 			if attribute.Key == model.DeviceTypeAttributeDeviceProfileIdKey && attribute.Value == profile.Id {
+				found = true
 				dt := c.prepareDeviceType(listItem, profile, &deviceType)
 				if deviceTypeNeedsUpdate(&deviceType, &dt) {
 					dt.Id = deviceType.Id
@@ -56,7 +63,17 @@ func (c *Controller) SyncDeviceProfile(ctx context.Context, listItem *api.Device
 						return err
 					}
 				}
+				break
 			}
+		}
+	}
+	if !found {
+		dt := c.prepareDeviceType(listItem, profile, nil)
+		c.jwtMux.RLock()
+		_, err, _ := c.deviceRepo.SetDeviceType("Bearer "+c.jwt.AccessToken, dt, device_repo_model.DeviceTypeUpdateOptions{})
+		c.jwtMux.RUnlock()
+		if err != nil {
+			return err
 		}
 	}
 
@@ -171,13 +188,102 @@ func (c *Controller) ensureSyncedService(dt models.DeviceType, localServiceId st
 	return "", fmt.Errorf("service %s not found after update", localServiceId)
 }
 
-func containsRegion(profile *api.DeviceProfileListItem, i []int32) bool {
-	for _, r := range i {
-		if int32(profile.Region) == r {
-			return true
+func (c *Controller) setupEventSyncDeviceProfile(ctx context.Context) error {
+	rdb := redis.NewClient(&redis.Options{
+		Addr: c.config.RedisUrl,
+	})
+	// use "$" to only read new entries that arrive after connecting
+	lastID := "$"
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
+			resp, err := rdb.XRead(ctx, &redis.XReadArgs{
+				Streams: []string{"api:stream:request", lastID},
+				Count:   10,
+				Block:   0,
+			}).Result()
+			if err != nil {
+				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) || ctx.Err() != nil {
+					return
+				}
+				log.Logger.Error("error reading from redis stream", attributes.ErrorKey, err)
+				time.Sleep(1 * time.Second)
+				continue
+			}
+
+			if len(resp) != 1 {
+				log.Logger.Error("Exactly one stream response is expected")
+				time.Sleep(1 * time.Second)
+				continue
+			}
+
+			for _, msg := range resp[0].Messages {
+				lastID = msg.ID
+
+				if b, ok := msg.Values["request"].(string); ok {
+					var pl stream.ApiRequestLog
+					if err := proto.Unmarshal([]byte(b), &pl); err != nil {
+						log.Logger.Error("unable to unmarshal api request log", attributes.ErrorKey, err)
+						continue
+					}
+
+					if pl.Service == "api.DeviceProfileService" && (pl.Method == "Create" || pl.Method == "Update") {
+						profileId, ok := pl.Metadata["device_profile_id"]
+						if !ok {
+							log.Logger.Error("device profile id not found in metadata")
+							continue
+						}
+						log.Logger.Debug("API Event Stream: Device Profile Created or Updated", "device_profile", profileId)
+						ctx2, cf := context.WithTimeout(ctx, 1*time.Minute)
+						profile, err := c.chirpDeviceProfile.Get(ctx2, &api.GetDeviceProfileRequest{Id: profileId})
+						if err != nil {
+							log.Logger.Error("error getting device profile", attributes.ErrorKey, err)
+							cf()
+							continue
+						}
+						list, err := c.chirpDeviceProfile.List(ctx2, &api.ListDeviceProfilesRequest{Search: profile.DeviceProfile.Name, Limit: 10000})
+						if err != nil {
+							log.Logger.Error("error listing device profiles", attributes.ErrorKey, err)
+							cf()
+							continue
+						}
+						var listItem *api.DeviceProfileListItem
+						for _, item := range list.Result {
+							if item.Id == profileId {
+								listItem = item
+								break
+							}
+						}
+						if listItem == nil {
+							log.Logger.Error("device profile list item not found for profile", "profile_id", profileId)
+							cf()
+							continue
+						}
+						err = c.SyncDeviceProfile(ctx2, listItem, profile.DeviceProfile)
+						if err != nil {
+							cf()
+							log.Logger.Error("error syncing device profile", attributes.ErrorKey, err)
+							continue
+						}
+						cf()
+						log.Logger.Debug("Device profile synced successfully", "device_profile", profileId)
+					}
+				}
+
+			}
 		}
-	}
-	return false
+	}()
+	return nil
+}
+
+func containsRegion(profile *api.DeviceProfileListItem, i []int32) bool {
+	return slices.Contains(i, int32(profile.Region))
 }
 
 func (c *Controller) prepareDeviceType(listItem *api.DeviceProfileListItem, profile *api.DeviceProfile, base *models.DeviceType) (deviceType models.DeviceType) {

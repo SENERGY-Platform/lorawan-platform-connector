@@ -56,6 +56,7 @@ func main() {
 		BatteryFunctionId:       "urn:infai:ses:measuring-function:00549f18-88b5-44c7-adb1-f558e8d53d1d",
 		BatteryAspectId:         "urn:infai:ses:aspect:81936bcb-3625-4054-9f88-8934ee63d3ca",
 		DeviceClassId:           "urn:infai:ses:device-class:ff64280a-58e6-4cf9-9a44-e70d3831a79d",
+		RedisUrl:                "redis:6379",
 	}
 
 	// load config from environment

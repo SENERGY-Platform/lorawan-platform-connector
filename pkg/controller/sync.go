@@ -40,6 +40,10 @@ func (c *Controller) setupSync(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	err = c.setupEventSyncDeviceProfile(ctx)
+	if err != nil {
+		return err
+	}
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()
 	go func() {

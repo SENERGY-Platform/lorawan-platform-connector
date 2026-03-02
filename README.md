@@ -7,9 +7,6 @@ Architecture diagram:
 ## TODOs
 
 - Gateway sync
-- Device Type (profile) sync
-  - Event based (redis stream)
-- Event based user deletion
 
 ## Gotchas
 

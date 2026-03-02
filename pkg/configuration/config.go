@@ -40,4 +40,5 @@ type Config struct {
 	BatteryFunctionId        string          `env_var:"BATTERY_FUNCTION_ID"`
 	BatteryAspectId          string          `env_var:"BATTERY_ASPECT_ID"`
 	DeviceClassId            string          `env_var:"DEVICE_CLASS_ID"`
+	RedisUrl                 string          `env_var:"REDIS_URL"`
 }
