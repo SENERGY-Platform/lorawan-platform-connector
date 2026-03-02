@@ -27,6 +27,7 @@ import (
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/configuration"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/log"
+	"github.com/chirpstack/chirpstack/api/go/v4/common"
 )
 
 func main() {
@@ -43,11 +44,18 @@ func main() {
 		ChirpstackProtectedUsers: []string{
 			"admin",
 		},
-		KafkaBootstrap:   "kafka.kafka:9092",
-		DeviceRepoUrl:    "http://api.device-repository:8080",
-		PermissionsV2Url: "http://permv2.permissions:8080",
-		MemcachedUrl:     "memcached:11211",
-		NotificationsUrl: "http://api.notifier:5000",
+		KafkaBootstrap:          "kafka.kafka:9092",
+		DeviceRepoUrl:           "http://api.device-repository:8080",
+		PermissionsV2Url:        "http://permv2.permissions:8080",
+		MemcachedUrl:            "memcached:11211",
+		NotificationsUrl:        "http://api.notifier:5000",
+		Regions:                 []int32{int32(common.Region_EU868)},
+		ProtocolId:              "urn:infai:ses:protocol:9c956b2b-c34d-4083-9f8e-d9cc35246137",
+		ProtocolDataSegmentId:   "urn:infai:ses:protocol-segment:7855de22-8643-4fd8-96e2-df8eb6f9948c",
+		BatteryCharacteristicId: "urn:infai:ses:characteristic:062da5dd-085e-4b01-9e13-e331cb97dc0f",
+		BatteryFunctionId:       "urn:infai:ses:measuring-function:00549f18-88b5-44c7-adb1-f558e8d53d1d",
+		BatteryAspectId:         "urn:infai:ses:aspect:81936bcb-3625-4054-9f88-8934ee63d3ca",
+		DeviceClassId:           "urn:infai:ses:device-class:ff64280a-58e6-4cf9-9a44-e70d3831a79d",
 	}
 
 	// load config from environment

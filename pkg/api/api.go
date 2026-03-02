@@ -42,6 +42,8 @@ var routes = gin_mw.Routes[*controller.Controller]{
 	postProvision,
 	postEvent,
 	patchSyncAllUsers,
+	patchSyncAllDevices,
+	patchSyncAllDeviceProfiles,
 }
 
 // Start godoc

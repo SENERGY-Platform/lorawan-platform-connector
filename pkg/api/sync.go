@@ -45,3 +45,46 @@ func patchSyncAllUsers(controller *controller.Controller) (string, string, gin.H
 		}
 	}
 }
+
+// patchSyncAllDevices godoc
+// @Summary      Sync Devices
+// @Description  Syncs all devices
+// @Success      200 {object} string "status message (or null)"
+// @Failure      400
+// @Failure      500
+// @Tags         Sync
+// @Security     Bearer
+// @Router       /sync/devices [PATCH]
+func patchSyncAllDevices(controller *controller.Controller) (string, string, gin.HandlerFunc) {
+	return http.MethodPatch, "/sync/devices", func(gc *gin.Context) {
+		err := errors.Join(
+			controller.SyncAllDevices(),
+			controller.DeleteOutdatedDevices(),
+		)
+		if err != nil {
+			gc.Error(err)
+			return
+		}
+	}
+}
+
+// patchSyncAllDeviceProfiles godoc
+// @Summary      Sync Device Profiles
+// @Description  Syncs all device profiles
+// @Success      200 {object} string "status message (or null)"
+// @Failure      400
+// @Failure      500
+// @Tags         Sync
+// @Security     Bearer
+// @Router       /sync/device-profiles [PATCH]
+func patchSyncAllDeviceProfiles(controller *controller.Controller) (string, string, gin.HandlerFunc) {
+	return http.MethodPatch, "/sync/device-profiles", func(gc *gin.Context) {
+		err := errors.Join(
+			controller.SyncAllDeviceProfiles(),
+		)
+		if err != nil {
+			gc.Error(err)
+			return
+		}
+	}
+}

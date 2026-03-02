@@ -33,4 +33,11 @@ type Config struct {
 	PermissionsV2Url         string          `env_var:"PERMISSIONS_V2_URL"`
 	MemcachedUrl             string          `env_var:"MEMCACHED_URL"`
 	NotificationsUrl         string          `env_var:"NOTIFICATIONS_URL"`
+	Regions                  []int32         `env_var:"REGIONS"` // list of regions to sync, if empty all regions will be synced. See https://pkg.go.dev/github.com/chirpstack/chirpstack/api/go/v4@v4.16.2/common#Region
+	ProtocolId               string          `env_var:"PROTOCOL_ID"`
+	ProtocolDataSegmentId    string          `env_var:"PROTOCOL_DATA_SEGMENT_ID"`
+	BatteryCharacteristicId  string          `env_var:"BATTERY_CHARACTERISTIC_ID"`
+	BatteryFunctionId        string          `env_var:"BATTERY_FUNCTION_ID"`
+	BatteryAspectId          string          `env_var:"BATTERY_ASPECT_ID"`
+	DeviceClassId            string          `env_var:"DEVICE_CLASS_ID"`
 }

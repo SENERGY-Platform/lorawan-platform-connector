@@ -126,6 +126,40 @@ paths:
         "500":
           description: Internal Server Error
       summary: Provision
+  /sync/device-profiles:
+    patch:
+      description: Syncs all device profiles
+      responses:
+        "200":
+          description: status message (or null)
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      security:
+      - Bearer: []
+      summary: Sync Device Profiles
+      tags:
+      - Sync
+  /sync/devices:
+    patch:
+      description: Syncs all devices
+      responses:
+        "200":
+          description: status message (or null)
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      security:
+      - Bearer: []
+      summary: Sync Devices
+      tags:
+      - Sync
   /sync/users:
     patch:
       description: Syncs all users

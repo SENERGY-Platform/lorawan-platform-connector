@@ -31,6 +31,7 @@ func (c *Controller) Sync() (err error) {
 		c.DeleteOutdatedUsers(),
 		c.SyncAllDevices(),
 		c.DeleteOutdatedDevices(),
+		c.SyncAllDeviceProfiles(),
 	)
 }
 

@@ -113,6 +113,62 @@ const docTemplate = `{
                 }
             }
         },
+        "/sync/device-profiles": {
+            "patch": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Syncs all device profiles",
+                "tags": [
+                    "Sync"
+                ],
+                "summary": "Sync Device Profiles",
+                "responses": {
+                    "200": {
+                        "description": "status message (or null)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/sync/devices": {
+            "patch": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Syncs all devices",
+                "tags": [
+                    "Sync"
+                ],
+                "summary": "Sync Devices",
+                "responses": {
+                    "200": {
+                        "description": "status message (or null)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
         "/sync/users": {
             "patch": {
                 "security": [

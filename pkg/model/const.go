@@ -34,4 +34,8 @@ const DeviceAttributeFNwkSIntKey = "senergy/lora/f-nwk-s-int-key"
 const DeviceAttributeJoinEuiKey = "senergy/lora/join-eui"
 const DeviceAttributeJoinedKey = "senergy/lora/joined"
 const DeviceAttributeDuplicateKey = "senergy/lora/duplicate"
+const DeviceAttributeSupportsOTAAKey = "senergy/lora/supports-otaa"
+const DeviceAttributeSupportsClassBKey = "senergy/lora/supports-class-b"
+const DeviceAttributeSupportsClassCKey = "senergy/lora/supports-class-c"
+
 const DeviceAttributeOrigin = "lorawan-platform-connector"
