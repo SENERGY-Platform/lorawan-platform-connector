@@ -83,6 +83,8 @@ func (c *Controller) HandleEvent(ctx context.Context, userId string, localDevice
 			expiration = time.Hour
 		}
 		value := ts.Format(time.RFC3339Nano)
+		ctx, cf := context.WithTimeout(context.Background(), time.Second*10)
+		defer cf()
 		for _, rx := range rxInfo {
 			err := c.rdb.Set(ctx, fmt.Sprintf(model.RedisKeyFmtGatewayDevice, rx.GatewayId, localDeviceId), value, expiration).Err()
 			if err != nil {
