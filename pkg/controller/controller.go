@@ -24,6 +24,7 @@ import (
 
 	"github.com/Nerzal/gocloak/v13"
 	device_repo "github.com/SENERGY-Platform/device-repository/lib/client"
+	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/configuration"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/log"
 	platform_connector_lib "github.com/SENERGY-Platform/platform-connector-lib"
@@ -104,10 +105,6 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 		defer controller.jwtMux.RUnlock()
 		return controller.jwt.AccessToken, nil
 	})
-	err = controller.setupSync(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	// setup token refresh
 	go func() {
@@ -136,6 +133,19 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if !config.DisableSync {
+		err = controller.setupSync(ctx)
+		if err != nil {
+			return nil, err
+		}
+		err = controller.Sync()
+		if err != nil {
+			log.Logger.Warn("unable to sync", attributes.ErrorKey, err)
+		}
+	} else {
+		log.Logger.Warn("sync is disabled")
 	}
 
 	return controller, nil

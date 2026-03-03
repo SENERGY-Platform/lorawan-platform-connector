@@ -35,10 +35,7 @@ func Start(ctx context.Context, config configuration.Config) (wg *sync.WaitGroup
 		log.Logger.Error("unable to initialize controller", attributes.ErrorKey, err)
 		return wg, err
 	}
-	err = controller.Sync()
-	if err != nil {
-		log.Logger.Warn("unable to sync", attributes.ErrorKey, err)
-	}
+
 	err = api.Start(ctx, wg, config, controller)
 	if err != nil {
 		return wg, err

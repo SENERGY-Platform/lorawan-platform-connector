@@ -513,7 +513,7 @@ func contentVariableNeedsUpdate(existing *models.ContentVariable, new *models.Co
 	return false
 }
 
-func prepareContentVariable(val *any, base *models.ContentVariable) *models.ContentVariable {
+func prepareContentVariable(val *any, base *models.ContentVariable) *models.ContentVariable { // TODO this is not working with lists
 	if val == nil {
 		return nil
 	}
@@ -585,16 +585,16 @@ func prepareContentVariable(val *any, base *models.ContentVariable) *models.Cont
 		remainingBaseSubs := map[int]any{}
 		if base != nil {
 			for i := range base.SubContentVariables {
-				remainingBaseSubs[i] = nil
+				remainingBaseSubs[i] = struct{}{}
 			}
 		}
 		for i, v := range s {
 			var baseSub *models.ContentVariable
 			if base != nil {
-				for i, sub := range base.SubContentVariables {
+				for j, sub := range base.SubContentVariables {
 					if sub.Name == fmt.Sprintf("%d", i) {
 						baseSub = &sub
-						delete(remainingBaseSubs, i)
+						delete(remainingBaseSubs, j)
 						break
 					}
 				}
