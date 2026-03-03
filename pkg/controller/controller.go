@@ -82,7 +82,7 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 
 	// create redis client
 	rdb := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
+		Addr: config.RedisUrl,
 	})
 
 	// create controller
