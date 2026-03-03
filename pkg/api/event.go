@@ -30,6 +30,7 @@ import (
 
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/controller"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/model"
+	"github.com/chirpstack/chirpstack/api/go/v4/gw"
 	"github.com/chirpstack/chirpstack/api/go/v4/integration"
 	"github.com/gin-gonic/gin"
 )
@@ -42,7 +43,8 @@ import (
 // @Accept       application/octet-stream
 // @Param        X-UserId header string true "Platform User ID"
 // @Param        event query string true "Event Type ('up'/'join'/'status')"
-// @Param        payload body []string true "requested values"
+// @Param        uplink body integration.UplinkEvent false "uplink event"
+// @Param        uplink body integration.StatusEvent false "status event"
 // @Success      200 {object} string "status message (or null)"
 // @Failure      400
 // @Failure      500
@@ -69,7 +71,7 @@ func postEvent(controller *controller.Controller) (string, string, gin.HandlerFu
 				return
 			}
 			log.Logger.Debug("Uplink received", "dev_eui", deviceInfo.DevEui, "payload", fmt.Sprintf("%#v", up.Object), "user", userId, "fport", strconv.FormatUint(uint64(up.FPort), 10))
-			err = controller.HandleEvent(gc.Request.Context(), userId, deviceInfo.DevEui, strconv.FormatUint(uint64(up.FPort), 10), up.Object, up.Time.AsTime())
+			err = controller.HandleEvent(gc.Request.Context(), userId, deviceInfo.DevEui, strconv.FormatUint(uint64(up.FPort), 10), up.Object, up.Time.AsTime(), up.RxInfo, up.DeviceInfo.DeviceProfileId)
 			if err != nil {
 				gc.Error(err)
 				return
@@ -113,7 +115,7 @@ func postEvent(controller *controller.Controller) (string, string, gin.HandlerFu
 				"battery_level_unavailable": status.BatteryLevelUnavailable,
 				"battery_level":             status.BatteryLevel,
 			}
-			err = controller.HandleEvent(gc.Request.Context(), userId, deviceInfo.DevEui, "status", data, status.Time.AsTime())
+			err = controller.HandleEvent(gc.Request.Context(), userId, deviceInfo.DevEui, "status", data, status.Time.AsTime(), []*gw.UplinkRxInfo{}, status.DeviceInfo.DeviceProfileId)
 			if err != nil {
 				gc.Error(err)
 				return

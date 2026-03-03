@@ -44,15 +44,19 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "requested values",
-                        "name": "payload",
+                        "description": "uplink event",
+                        "name": "uplink",
                         "in": "body",
-                        "required": true,
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/integration.UplinkEvent"
+                        }
+                    },
+                    {
+                        "description": "status event",
+                        "name": "uplink",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/integration.StatusEvent"
                         }
                     }
                 ],
@@ -169,6 +173,34 @@ const docTemplate = `{
                 }
             }
         },
+        "/sync/gateways": {
+            "patch": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Syncs all gateways",
+                "tags": [
+                    "Sync"
+                ],
+                "summary": "Sync Gateways",
+                "responses": {
+                    "200": {
+                        "description": "status message (or null)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
         "/sync/users": {
             "patch": {
                 "security": [
@@ -199,6 +231,117 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "common.DeviceClass": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+                0,
+                1,
+                2
+            ],
+            "x-enum-varnames": [
+                "DeviceClass_CLASS_A",
+                "DeviceClass_CLASS_B",
+                "DeviceClass_CLASS_C"
+            ]
+        },
+        "common.JoinServerContext": {
+            "type": "object",
+            "properties": {
+                "app_s_key": {
+                    "description": "AppSKey envelope.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/common.KeyEnvelope"
+                        }
+                    ]
+                },
+                "session_key_id": {
+                    "description": "Session-key ID.",
+                    "type": "string"
+                }
+            }
+        },
+        "common.KeyEnvelope": {
+            "type": "object",
+            "properties": {
+                "aes_key": {
+                    "description": "AES key (when the kek_label is set, this value must first be decrypted).",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "kek_label": {
+                    "description": "KEK label.",
+                    "type": "string"
+                }
+            }
+        },
+        "common.Location": {
+            "type": "object",
+            "properties": {
+                "accuracy": {
+                    "description": "Accuracy.",
+                    "type": "number"
+                },
+                "altitude": {
+                    "description": "Altitude.",
+                    "type": "number"
+                },
+                "latitude": {
+                    "description": "Latitude.",
+                    "type": "number"
+                },
+                "longitude": {
+                    "description": "Longitude.",
+                    "type": "number"
+                },
+                "source": {
+                    "description": "Location source.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/common.LocationSource"
+                        }
+                    ]
+                }
+            }
+        },
+        "common.LocationSource": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+            ],
+            "x-enum-varnames": [
+                "LocationSource_UNKNOWN",
+                "LocationSource_GPS",
+                "LocationSource_CONFIG",
+                "LocationSource_GEO_RESOLVER_TDOA",
+                "LocationSource_GEO_RESOLVER_RSSI",
+                "LocationSource_GEO_RESOLVER_GNSS",
+                "LocationSource_GEO_RESOLVER_WIFI"
+            ]
+        },
+        "durationpb.Duration": {
+            "type": "object",
+            "properties": {
+                "nanos": {
+                    "description": "Signed fractions of a second at nanosecond resolution of the span\nof time. Durations less than one second are represented with a 0\n` + "`" + `seconds` + "`" + ` field and a positive or negative ` + "`" + `nanos` + "`" + ` field. For durations\nof one second or more, a non-zero value for the ` + "`" + `nanos` + "`" + ` field must be\nof the same sign as the ` + "`" + `seconds` + "`" + ` field. Must be from -999,999,999\nto +999,999,999 inclusive.",
+                    "type": "integer"
+                },
+                "seconds": {
+                    "description": "Signed seconds of the span of time. Must be from -315,576,000,000\nto +315,576,000,000 inclusive. Note: these bounds are computed from:\n60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years",
+                    "type": "integer"
+                }
+            }
+        },
         "gocloak.UserInfo": {
             "type": "object",
             "properties": {
@@ -281,6 +424,398 @@ const docTemplate = `{
                 },
                 "street_address": {
                     "type": "string"
+                }
+            }
+        },
+        "gw.CRCStatus": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+                0,
+                1,
+                2
+            ],
+            "x-enum-varnames": [
+                "CRCStatus_NO_CRC",
+                "CRCStatus_BAD_CRC",
+                "CRCStatus_CRC_OK"
+            ]
+        },
+        "gw.Modulation": {
+            "type": "object",
+            "properties": {
+                "parameters": {
+                    "description": "Types that are valid to be assigned to Parameters:\n\n\t*Modulation_Lora\n\t*Modulation_Fsk\n\t*Modulation_LrFhss"
+                }
+            }
+        },
+        "gw.UplinkRxInfo": {
+            "type": "object",
+            "properties": {
+                "antenna": {
+                    "description": "Antenna.",
+                    "type": "integer"
+                },
+                "board": {
+                    "description": "Board.",
+                    "type": "integer"
+                },
+                "channel": {
+                    "description": "Channel.",
+                    "type": "integer"
+                },
+                "context": {
+                    "description": "Gateway specific context.\nThis value must be returned to the gateway on (Class-A) downlink.",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "crc_status": {
+                    "description": "CRC status.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/gw.CRCStatus"
+                        }
+                    ]
+                },
+                "fine_time_since_gps_epoch": {
+                    "description": "Fine-timestamp.\nThis timestamp can be used for TDOA based geolocation.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/durationpb.Duration"
+                        }
+                    ]
+                },
+                "gateway_id": {
+                    "description": "Gateway ID.",
+                    "type": "string"
+                },
+                "gw_time": {
+                    "description": "Gateway RX time (set if the gateway has a GNSS module).",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/timestamppb.Timestamp"
+                        }
+                    ]
+                },
+                "location": {
+                    "description": "Location.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/common.Location"
+                        }
+                    ]
+                },
+                "metadata": {
+                    "description": "Additional gateway meta-data.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "ns_time": {
+                    "description": "Network Server RX time (set by the NS on receiving the uplink).",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/timestamppb.Timestamp"
+                        }
+                    ]
+                },
+                "rf_chain": {
+                    "description": "RF chain.",
+                    "type": "integer"
+                },
+                "rssi": {
+                    "description": "RSSI.",
+                    "type": "integer"
+                },
+                "snr": {
+                    "description": "SNR.\nNote: only available for LoRa modulation.",
+                    "type": "number"
+                },
+                "time_since_gps_epoch": {
+                    "description": "RX time as time since GPS epoch (set if the gateway has a GNSS module).",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/durationpb.Duration"
+                        }
+                    ]
+                },
+                "uplink_id": {
+                    "description": "Uplink ID.",
+                    "type": "integer"
+                }
+            }
+        },
+        "gw.UplinkTxInfo": {
+            "type": "object",
+            "properties": {
+                "frequency": {
+                    "description": "Frequency (Hz).",
+                    "type": "integer"
+                },
+                "modulation": {
+                    "description": "Modulation.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/gw.Modulation"
+                        }
+                    ]
+                }
+            }
+        },
+        "integration.DeviceInfo": {
+            "type": "object",
+            "properties": {
+                "application_id": {
+                    "description": "Application ID (UUID).",
+                    "type": "string"
+                },
+                "application_name": {
+                    "description": "Application name.",
+                    "type": "string"
+                },
+                "dev_eui": {
+                    "description": "Device EUI.",
+                    "type": "string"
+                },
+                "device_class_enabled": {
+                    "description": "Device class.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/common.DeviceClass"
+                        }
+                    ]
+                },
+                "device_name": {
+                    "description": "Device name.",
+                    "type": "string"
+                },
+                "device_profile_id": {
+                    "description": "Device-profile ID (UUID).",
+                    "type": "string"
+                },
+                "device_profile_name": {
+                    "description": "Device-profile name.",
+                    "type": "string"
+                },
+                "tags": {
+                    "description": "Device-profile and device tags.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "tenant_id": {
+                    "description": "Tenant ID (UUID).",
+                    "type": "string"
+                },
+                "tenant_name": {
+                    "description": "Tenant name.",
+                    "type": "string"
+                }
+            }
+        },
+        "integration.StatusEvent": {
+            "type": "object",
+            "properties": {
+                "battery_level": {
+                    "description": "Battery level.",
+                    "type": "number"
+                },
+                "battery_level_unavailable": {
+                    "description": "Battery level is not available.",
+                    "type": "boolean"
+                },
+                "deduplication_id": {
+                    "description": "Deduplication ID (UUID).",
+                    "type": "string"
+                },
+                "device_info": {
+                    "description": "Device info.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/integration.DeviceInfo"
+                        }
+                    ]
+                },
+                "external_power_source": {
+                    "description": "Device is connected to an external power source.",
+                    "type": "boolean"
+                },
+                "margin": {
+                    "description": "The demodulation signal-to-noise ratio in dB for the last successfully\nreceived device-status request by the Network Server.",
+                    "type": "integer"
+                },
+                "time": {
+                    "description": "Timestamp.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/timestamppb.Timestamp"
+                        }
+                    ]
+                }
+            }
+        },
+        "integration.UplinkEvent": {
+            "type": "object",
+            "properties": {
+                "adr": {
+                    "description": "Device has ADR bit set.",
+                    "type": "boolean"
+                },
+                "confirmed": {
+                    "description": "Uplink was of type confirmed.",
+                    "type": "boolean"
+                },
+                "data": {
+                    "description": "FRMPayload data.",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "deduplication_id": {
+                    "description": "Deduplication ID (UUID).",
+                    "type": "string"
+                },
+                "dev_addr": {
+                    "description": "Device address.",
+                    "type": "string"
+                },
+                "device_info": {
+                    "description": "Device information.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/integration.DeviceInfo"
+                        }
+                    ]
+                },
+                "dr": {
+                    "description": "Data-rate.",
+                    "type": "integer"
+                },
+                "f_cnt": {
+                    "description": "Frame counter.",
+                    "type": "integer"
+                },
+                "f_port": {
+                    "description": "Frame port.",
+                    "type": "integer"
+                },
+                "join_server_context": {
+                    "description": "Join-Server context.\nA non-empty value indicatest that ChirpStack does not have access to\nthe AppSKey and that the encryption / decryption of the payloads is\nthe responsibility of the end-application.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/common.JoinServerContext"
+                        }
+                    ]
+                },
+                "object": {
+                    "description": "Note that this is only set when a codec is configured in the Device\nProfile.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/structpb.Struct"
+                        }
+                    ]
+                },
+                "region_config_id": {
+                    "description": "Region config ID.\nThis contains the region config ID which reported the uplink.",
+                    "type": "string"
+                },
+                "relay_rx_info": {
+                    "description": "Relay info.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/integration.UplinkRelayRxInfo"
+                        }
+                    ]
+                },
+                "rx_info": {
+                    "description": "Receiving gateway RX info.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/gw.UplinkRxInfo"
+                    }
+                },
+                "time": {
+                    "description": "Timestamp.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/timestamppb.Timestamp"
+                        }
+                    ]
+                },
+                "tx_info": {
+                    "description": "TX info.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/gw.UplinkTxInfo"
+                        }
+                    ]
+                }
+            }
+        },
+        "integration.UplinkRelayRxInfo": {
+            "type": "object",
+            "properties": {
+                "dev_eui": {
+                    "description": "Relay DevEUI.",
+                    "type": "string"
+                },
+                "dr": {
+                    "description": "Data-rate.",
+                    "type": "integer"
+                },
+                "frequency": {
+                    "description": "Frequency.",
+                    "type": "integer"
+                },
+                "rssi": {
+                    "description": "RSSI.",
+                    "type": "integer"
+                },
+                "snr": {
+                    "description": "SNR.",
+                    "type": "integer"
+                },
+                "wor_channel": {
+                    "description": "WOR channel.",
+                    "type": "integer"
+                }
+            }
+        },
+        "structpb.Struct": {
+            "type": "object",
+            "properties": {
+                "fields": {
+                    "description": "Unordered map of dynamically typed values.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/structpb.Value"
+                    }
+                }
+            }
+        },
+        "structpb.Value": {
+            "type": "object",
+            "properties": {
+                "kind": {
+                    "description": "The kind of value.\n\nTypes that are valid to be assigned to Kind:\n\n\t*Value_NullValue\n\t*Value_NumberValue\n\t*Value_StringValue\n\t*Value_BoolValue\n\t*Value_StructValue\n\t*Value_ListValue"
+                }
+            }
+        },
+        "timestamppb.Timestamp": {
+            "type": "object",
+            "properties": {
+                "nanos": {
+                    "description": "Non-negative fractions of a second at nanosecond resolution. Negative\nsecond values with fractions must still have non-negative nanos values\nthat count forward in time. Must be from 0 to 999,999,999\ninclusive.",
+                    "type": "integer"
+                },
+                "seconds": {
+                    "description": "Represents seconds of UTC time since Unix epoch\n1970-01-01T00:00:00Z. Must be from 0001-01-01T00:00:00Z to\n9999-12-31T23:59:59Z inclusive.",
+                    "type": "integer"
                 }
             }
         }

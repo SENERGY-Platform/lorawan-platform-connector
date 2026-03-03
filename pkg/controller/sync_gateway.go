@@ -20,7 +20,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"regexp"
 	"slices"
 	"strconv"
 	"sync"
@@ -92,7 +94,9 @@ func (c *Controller) SyncGateway(ctx context.Context, hub *models.Hub) error {
 
 	newGateway := prepareGateway(gw, hub, tenant)
 
-	if fillHubAttributes(gw, hub) { // update hub attributes with values from chirpstack (e.g. location)
+	update := fillHubAttributes(gw, hub)
+	update = c.linkHubDevices(ctx, gw, hub) || update // careful: lazy eval!
+	if update {
 		_, err, _ := c.deviceRepo.SetHub("Bearer "+c.jwt.AccessToken, *hub)
 		if err != nil {
 			return err
@@ -440,6 +444,39 @@ func fillHubAttributes(gateway *api.Gateway, hub *models.Hub) bool {
 			Value: strconv.FormatUint(uint64(gateway.StatsInterval), 10) + "s",
 		}, hub) || updated // careful: lazy eval!
 	}
+	return updated
+}
+
+func (c *Controller) linkHubDevices(ctx context.Context, gateway *api.Gateway, hub *models.Hub) bool {
+	if gateway == nil {
+		return false
+	}
+	localIds := []string{}
+	rx := regexp.MustCompile(fmt.Sprintf(model.RedisKeyFmtGatewayDevice, gateway.GatewayId, "(.*)"))
+
+	var cursor uint64
+	for {
+		keys, nextCursor, err := c.rdb.Scan(ctx, cursor, fmt.Sprintf(model.RedisKeyFmtGatewayDevice, gateway.GatewayId, "*"), 1000).Result()
+		if err != nil {
+			log.Logger.Error("error scanning redis keys", attributes.ErrorKey, err)
+		}
+
+		for _, key := range keys {
+			matches := rx.FindStringSubmatch(key)
+			if len(matches) != 2 {
+				log.Logger.Error("unexpected key in redis", "key", key)
+				continue
+			}
+			localIds = append(localIds, matches[1])
+		}
+
+		cursor = nextCursor
+		if cursor == 0 {
+			break
+		}
+	}
+	updated := !slices.Equal(hub.DeviceLocalIds, localIds)
+	hub.DeviceLocalIds = localIds
 	return updated
 }
 

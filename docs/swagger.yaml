@@ -1,5 +1,94 @@
 basePath: /
 definitions:
+  common.DeviceClass:
+    enum:
+    - 0
+    - 1
+    - 2
+    format: int32
+    type: integer
+    x-enum-varnames:
+    - DeviceClass_CLASS_A
+    - DeviceClass_CLASS_B
+    - DeviceClass_CLASS_C
+  common.JoinServerContext:
+    properties:
+      app_s_key:
+        allOf:
+        - $ref: '#/definitions/common.KeyEnvelope'
+        description: AppSKey envelope.
+      session_key_id:
+        description: Session-key ID.
+        type: string
+    type: object
+  common.KeyEnvelope:
+    properties:
+      aes_key:
+        description: AES key (when the kek_label is set, this value must first be
+          decrypted).
+        items:
+          type: integer
+        type: array
+      kek_label:
+        description: KEK label.
+        type: string
+    type: object
+  common.Location:
+    properties:
+      accuracy:
+        description: Accuracy.
+        type: number
+      altitude:
+        description: Altitude.
+        type: number
+      latitude:
+        description: Latitude.
+        type: number
+      longitude:
+        description: Longitude.
+        type: number
+      source:
+        allOf:
+        - $ref: '#/definitions/common.LocationSource'
+        description: Location source.
+    type: object
+  common.LocationSource:
+    enum:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    format: int32
+    type: integer
+    x-enum-varnames:
+    - LocationSource_UNKNOWN
+    - LocationSource_GPS
+    - LocationSource_CONFIG
+    - LocationSource_GEO_RESOLVER_TDOA
+    - LocationSource_GEO_RESOLVER_RSSI
+    - LocationSource_GEO_RESOLVER_GNSS
+    - LocationSource_GEO_RESOLVER_WIFI
+  durationpb.Duration:
+    properties:
+      nanos:
+        description: |-
+          Signed fractions of a second at nanosecond resolution of the span
+          of time. Durations less than one second are represented with a 0
+          `seconds` field and a positive or negative `nanos` field. For durations
+          of one second or more, a non-zero value for the `nanos` field must be
+          of the same sign as the `seconds` field. Must be from -999,999,999
+          to +999,999,999 inclusive.
+        type: integer
+      seconds:
+        description: |-
+          Signed seconds of the span of time. Must be from -315,576,000,000
+          to +315,576,000,000 inclusive. Note: these bounds are computed from:
+          60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/year * 10000 years
+        type: integer
+    type: object
   gocloak.UserInfo:
     properties:
       address:
@@ -56,6 +145,284 @@ definitions:
       street_address:
         type: string
     type: object
+  gw.CRCStatus:
+    enum:
+    - 0
+    - 1
+    - 2
+    format: int32
+    type: integer
+    x-enum-varnames:
+    - CRCStatus_NO_CRC
+    - CRCStatus_BAD_CRC
+    - CRCStatus_CRC_OK
+  gw.Modulation:
+    properties:
+      parameters:
+        description: "Types that are valid to be assigned to Parameters:\n\n\t*Modulation_Lora\n\t*Modulation_Fsk\n\t*Modulation_LrFhss"
+    type: object
+  gw.UplinkRxInfo:
+    properties:
+      antenna:
+        description: Antenna.
+        type: integer
+      board:
+        description: Board.
+        type: integer
+      channel:
+        description: Channel.
+        type: integer
+      context:
+        description: |-
+          Gateway specific context.
+          This value must be returned to the gateway on (Class-A) downlink.
+        items:
+          type: integer
+        type: array
+      crc_status:
+        allOf:
+        - $ref: '#/definitions/gw.CRCStatus'
+        description: CRC status.
+      fine_time_since_gps_epoch:
+        allOf:
+        - $ref: '#/definitions/durationpb.Duration'
+        description: |-
+          Fine-timestamp.
+          This timestamp can be used for TDOA based geolocation.
+      gateway_id:
+        description: Gateway ID.
+        type: string
+      gw_time:
+        allOf:
+        - $ref: '#/definitions/timestamppb.Timestamp'
+        description: Gateway RX time (set if the gateway has a GNSS module).
+      location:
+        allOf:
+        - $ref: '#/definitions/common.Location'
+        description: Location.
+      metadata:
+        additionalProperties:
+          type: string
+        description: Additional gateway meta-data.
+        type: object
+      ns_time:
+        allOf:
+        - $ref: '#/definitions/timestamppb.Timestamp'
+        description: Network Server RX time (set by the NS on receiving the uplink).
+      rf_chain:
+        description: RF chain.
+        type: integer
+      rssi:
+        description: RSSI.
+        type: integer
+      snr:
+        description: |-
+          SNR.
+          Note: only available for LoRa modulation.
+        type: number
+      time_since_gps_epoch:
+        allOf:
+        - $ref: '#/definitions/durationpb.Duration'
+        description: RX time as time since GPS epoch (set if the gateway has a GNSS
+          module).
+      uplink_id:
+        description: Uplink ID.
+        type: integer
+    type: object
+  gw.UplinkTxInfo:
+    properties:
+      frequency:
+        description: Frequency (Hz).
+        type: integer
+      modulation:
+        allOf:
+        - $ref: '#/definitions/gw.Modulation'
+        description: Modulation.
+    type: object
+  integration.DeviceInfo:
+    properties:
+      application_id:
+        description: Application ID (UUID).
+        type: string
+      application_name:
+        description: Application name.
+        type: string
+      dev_eui:
+        description: Device EUI.
+        type: string
+      device_class_enabled:
+        allOf:
+        - $ref: '#/definitions/common.DeviceClass'
+        description: Device class.
+      device_name:
+        description: Device name.
+        type: string
+      device_profile_id:
+        description: Device-profile ID (UUID).
+        type: string
+      device_profile_name:
+        description: Device-profile name.
+        type: string
+      tags:
+        additionalProperties:
+          type: string
+        description: Device-profile and device tags.
+        type: object
+      tenant_id:
+        description: Tenant ID (UUID).
+        type: string
+      tenant_name:
+        description: Tenant name.
+        type: string
+    type: object
+  integration.StatusEvent:
+    properties:
+      battery_level:
+        description: Battery level.
+        type: number
+      battery_level_unavailable:
+        description: Battery level is not available.
+        type: boolean
+      deduplication_id:
+        description: Deduplication ID (UUID).
+        type: string
+      device_info:
+        allOf:
+        - $ref: '#/definitions/integration.DeviceInfo'
+        description: Device info.
+      external_power_source:
+        description: Device is connected to an external power source.
+        type: boolean
+      margin:
+        description: |-
+          The demodulation signal-to-noise ratio in dB for the last successfully
+          received device-status request by the Network Server.
+        type: integer
+      time:
+        allOf:
+        - $ref: '#/definitions/timestamppb.Timestamp'
+        description: Timestamp.
+    type: object
+  integration.UplinkEvent:
+    properties:
+      adr:
+        description: Device has ADR bit set.
+        type: boolean
+      confirmed:
+        description: Uplink was of type confirmed.
+        type: boolean
+      data:
+        description: FRMPayload data.
+        items:
+          type: integer
+        type: array
+      deduplication_id:
+        description: Deduplication ID (UUID).
+        type: string
+      dev_addr:
+        description: Device address.
+        type: string
+      device_info:
+        allOf:
+        - $ref: '#/definitions/integration.DeviceInfo'
+        description: Device information.
+      dr:
+        description: Data-rate.
+        type: integer
+      f_cnt:
+        description: Frame counter.
+        type: integer
+      f_port:
+        description: Frame port.
+        type: integer
+      join_server_context:
+        allOf:
+        - $ref: '#/definitions/common.JoinServerContext'
+        description: |-
+          Join-Server context.
+          A non-empty value indicatest that ChirpStack does not have access to
+          the AppSKey and that the encryption / decryption of the payloads is
+          the responsibility of the end-application.
+      object:
+        allOf:
+        - $ref: '#/definitions/structpb.Struct'
+        description: |-
+          Note that this is only set when a codec is configured in the Device
+          Profile.
+      region_config_id:
+        description: |-
+          Region config ID.
+          This contains the region config ID which reported the uplink.
+        type: string
+      relay_rx_info:
+        allOf:
+        - $ref: '#/definitions/integration.UplinkRelayRxInfo'
+        description: Relay info.
+      rx_info:
+        description: Receiving gateway RX info.
+        items:
+          $ref: '#/definitions/gw.UplinkRxInfo'
+        type: array
+      time:
+        allOf:
+        - $ref: '#/definitions/timestamppb.Timestamp'
+        description: Timestamp.
+      tx_info:
+        allOf:
+        - $ref: '#/definitions/gw.UplinkTxInfo'
+        description: TX info.
+    type: object
+  integration.UplinkRelayRxInfo:
+    properties:
+      dev_eui:
+        description: Relay DevEUI.
+        type: string
+      dr:
+        description: Data-rate.
+        type: integer
+      frequency:
+        description: Frequency.
+        type: integer
+      rssi:
+        description: RSSI.
+        type: integer
+      snr:
+        description: SNR.
+        type: integer
+      wor_channel:
+        description: WOR channel.
+        type: integer
+    type: object
+  structpb.Struct:
+    properties:
+      fields:
+        additionalProperties:
+          $ref: '#/definitions/structpb.Value'
+        description: Unordered map of dynamically typed values.
+        type: object
+    type: object
+  structpb.Value:
+    properties:
+      kind:
+        description: "The kind of value.\n\nTypes that are valid to be assigned to
+          Kind:\n\n\t*Value_NullValue\n\t*Value_NumberValue\n\t*Value_StringValue\n\t*Value_BoolValue\n\t*Value_StructValue\n\t*Value_ListValue"
+    type: object
+  timestamppb.Timestamp:
+    properties:
+      nanos:
+        description: |-
+          Non-negative fractions of a second at nanosecond resolution. Negative
+          second values with fractions must still have non-negative nanos values
+          that count forward in time. Must be from 0 to 999,999,999
+          inclusive.
+        type: integer
+      seconds:
+        description: |-
+          Represents seconds of UTC time since Unix epoch
+          1970-01-01T00:00:00Z. Must be from 0001-01-01T00:00:00Z to
+          9999-12-31T23:59:59Z inclusive.
+        type: integer
+    type: object
 info:
   contact: {}
   license:
@@ -81,14 +448,16 @@ paths:
         name: event
         required: true
         type: string
-      - description: requested values
+      - description: uplink event
         in: body
-        name: payload
-        required: true
+        name: uplink
         schema:
-          items:
-            type: string
-          type: array
+          $ref: '#/definitions/integration.UplinkEvent'
+      - description: status event
+        in: body
+        name: uplink
+        schema:
+          $ref: '#/definitions/integration.StatusEvent'
       responses:
         "200":
           description: status message (or null)
@@ -158,6 +527,23 @@ paths:
       security:
       - Bearer: []
       summary: Sync Devices
+      tags:
+      - Sync
+  /sync/gateways:
+    patch:
+      description: Syncs all gateways
+      responses:
+        "200":
+          description: status message (or null)
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      security:
+      - Bearer: []
+      summary: Sync Gateways
       tags:
       - Sync
   /sync/users:

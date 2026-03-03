@@ -28,6 +28,7 @@ import (
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/log"
 	platform_connector_lib "github.com/SENERGY-Platform/platform-connector-lib"
 	"github.com/chirpstack/chirpstack/api/go/v4/api"
+	"github.com/go-redis/redis/v8"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -45,6 +46,7 @@ type Controller struct {
 	jwtMux             sync.RWMutex
 	connector          *platform_connector_lib.Connector
 	deviceRepo         device_repo.Interface
+	rdb                *redis.Client
 }
 
 func New(config configuration.Config, ctx context.Context) (*Controller, error) {
@@ -77,6 +79,12 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 	if err != nil {
 		return nil, err
 	}
+
+	// create redis client
+	rdb := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+
 	// create controller
 	controller := &Controller{
 		config:             config,
@@ -89,6 +97,7 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 		jwt:                jwt,
 		gocloakClient:      gocloakClient,
 		jwtMux:             sync.RWMutex{},
+		rdb:                rdb,
 	}
 	controller.deviceRepo = device_repo.NewClient(config.DeviceRepoUrl, func() (token string, err error) {
 		controller.jwtMux.RLock()

@@ -28,11 +28,14 @@ import (
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/model"
 	platform_connector_lib "github.com/SENERGY-Platform/platform-connector-lib"
 	platform_connector_lib_model "github.com/SENERGY-Platform/platform-connector-lib/model"
+	"github.com/SENERGY-Platform/service-commons/pkg/cache"
+	"github.com/chirpstack/chirpstack/api/go/v4/api"
+	"github.com/chirpstack/chirpstack/api/go/v4/gw"
 )
 
 const timeKey = "lora/time"
 
-func (c *Controller) HandleEvent(ctx context.Context, userId string, localDeviceId string, localServiceId string, payload any, ts time.Time) error {
+func (c *Controller) HandleEvent(ctx context.Context, userId string, localDeviceId string, localServiceId string, payload any, ts time.Time, rxInfo []*gw.UplinkRxInfo, deviceProfileId string) error {
 	token, err := c.connector.Security().GetCachedUserToken(userId, platform_connector_lib_model.RemoteInfo{})
 	if err != nil {
 		return err
@@ -45,6 +48,48 @@ func (c *Controller) HandleEvent(ctx context.Context, userId string, localDevice
 	if err != nil {
 		return err
 	}
+
+	go func() {
+		if len(rxInfo) == 0 {
+			return
+		}
+		found := false
+		var expiration time.Duration
+		var err2 error
+		for _, a := range device.Attributes {
+			if a.Key == model.DeviceAttributeMessageMaxAgeKey {
+				if d, err := time.ParseDuration(a.Value); err == nil {
+					expiration = d
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			expiration, err2 = cache.Use(c.connector.IotCache.GetCache(), "lpc_device_profile_"+deviceProfileId, func() (time.Duration, error) {
+				ctx, cf := context.WithTimeout(context.Background(), time.Second*10)
+				defer cf()
+				profile, err := c.chirpDeviceProfile.Get(ctx, &api.GetDeviceProfileRequest{
+					Id: deviceProfileId,
+				})
+				if err != nil {
+					return time.Hour, err
+				}
+				return time.Second * time.Duration(profile.DeviceProfile.UplinkInterval), nil
+			}, nil, time.Minute)
+		}
+		if err2 != nil {
+			log.Logger.Error("unable to get message max age from device profile, using default", attributes.ErrorKey, err2, "device_profile_id", deviceProfileId)
+			expiration = time.Hour
+		}
+		value := ts.Format(time.RFC3339Nano)
+		for _, rx := range rxInfo {
+			err := c.rdb.Set(ctx, fmt.Sprintf(model.RedisKeyFmtGatewayDevice, rx.GatewayId, localDeviceId), value, expiration).Err()
+			if err != nil {
+				log.Logger.Error("unable to set device timestamp in redis", attributes.ErrorKey, err, "gateway_id", rx.GatewayId, "device_id", localDeviceId)
+			}
+		}
+	}()
 
 	event := platform_connector_lib.EventMsg{}
 	encoded, err := json.Marshal(payload)
