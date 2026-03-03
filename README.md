@@ -7,6 +7,7 @@ Architecture diagram:
 ## TODOs
 
 - Gateway sync
+  - Device Link
 
 ## Gotchas
 

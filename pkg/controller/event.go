@@ -80,10 +80,10 @@ func (c *Controller) AnnotateDeviceJoined(ctx context.Context, userId string, lo
 	if err != nil {
 		return err
 	}
-	model.UpsertAttribute(platform_connector_lib_model.Attribute{
+	model.UpsertDeviceAttribute(platform_connector_lib_model.Attribute{
 		Key:    model.DeviceAttributeJoinedKey,
 		Value:  "true",
-		Origin: model.DeviceAttributeOrigin,
+		Origin: model.AttributeOrigin,
 	}, &device)
 	_, err = c.connector.IotCache.UpdateDevice(token, device)
 	return err

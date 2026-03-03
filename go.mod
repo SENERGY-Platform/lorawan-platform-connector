@@ -29,7 +29,7 @@ require (
 	github.com/SENERGY-Platform/developer-notifications v0.0.4 // indirect
 	github.com/SENERGY-Platform/device-repository v0.2.39 // indirect
 	github.com/SENERGY-Platform/go-base-http-client v0.1.0 // indirect
-	github.com/SENERGY-Platform/models/go v0.0.0-20251202070403-e7e5579f7111 // indirect
+	github.com/SENERGY-Platform/models/go v0.0.0-20260302084452-04ca9ee69c93 // indirect
 	github.com/SENERGY-Platform/permissions-v2 v0.0.40 // indirect
 	github.com/SENERGY-Platform/service-commons v0.0.0-20260106114257-16bca4ba28e7 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

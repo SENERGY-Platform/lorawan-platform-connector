@@ -63,10 +63,10 @@ func (c *Controller) SyncDevice(ctx context.Context, platformDevice *models.Exte
 	if chirpDevice != nil && chirpDevice.Device.ApplicationId != newChirpDevice.ApplicationId {
 		// device exists but in different application
 		log.Logger.Warn("device exists in different application", "device_id", platformDevice.Id, "local_id", platformDevice.LocalId, "existing_chirp_app_id", chirpDevice.Device.ApplicationId, "new_chirp_app_id", newChirpDevice.ApplicationId)
-		updated := model.UpsertAttribute(models.Attribute{
+		updated := model.UpsertDeviceAttribute(models.Attribute{
 			Key:    model.DeviceAttributeDuplicateKey,
 			Value:  "true",
-			Origin: model.DeviceAttributeOrigin,
+			Origin: model.AttributeOrigin,
 		}, &platformDevice.Device)
 		if !updated {
 			// attribute already exists with same value, nothing to update
@@ -514,7 +514,7 @@ func (c *Controller) prepareChirpDevice(ctx context.Context, platformDevice *mod
 	for _, a := range platformDevice.Attributes {
 		value := strings.ToLower(a.Value)
 		switch a.Key {
-		case model.DeviceAttributeDevAddr:
+		case model.DeviceAttributeDevAddrKey:
 			activation.DevAddr = value
 		case model.DeviceAttributeAppSKey:
 			activation.AppSKey = value

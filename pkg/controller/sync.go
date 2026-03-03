@@ -32,11 +32,17 @@ func (c *Controller) Sync() (err error) {
 		c.SyncAllDevices(),
 		c.DeleteOutdatedDevices(),
 		c.SyncAllDeviceProfiles(),
+		c.SyncAllGateways(),
+		c.DeleteOutdatedGateways(),
 	)
 }
 
 func (c *Controller) setupSync(ctx context.Context) error {
 	err := c.setupEventSyncDevice(ctx)
+	if err != nil {
+		return err
+	}
+	err = c.setupEventSyncGateway(ctx)
 	if err != nil {
 		return err
 	}

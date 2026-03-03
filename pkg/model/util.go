@@ -18,7 +18,7 @@ package model
 
 import "github.com/SENERGY-Platform/models/go/models"
 
-func UpsertAttribute(attribute models.Attribute, device *models.Device) bool {
+func UpsertDeviceAttribute(attribute models.Attribute, device *models.Device) bool {
 	for i := range device.Attributes {
 		if device.Attributes[i].Key == attribute.Key {
 			if device.Attributes[i].Value == attribute.Value && device.Attributes[i].Origin == attribute.Origin {
@@ -30,5 +30,20 @@ func UpsertAttribute(attribute models.Attribute, device *models.Device) bool {
 		}
 	}
 	device.Attributes = append(device.Attributes, attribute)
+	return true
+}
+
+func UpsertGatewayAttribute(attribute models.Attribute, gateway *models.Hub) bool {
+	for i := range gateway.Attributes {
+		if gateway.Attributes[i].Key == attribute.Key {
+			if gateway.Attributes[i].Value == attribute.Value && gateway.Attributes[i].Origin == attribute.Origin {
+				return false
+			}
+			gateway.Attributes[i].Value = attribute.Value
+			gateway.Attributes[i].Origin = attribute.Origin
+			return true
+		}
+	}
+	gateway.Attributes = append(gateway.Attributes, attribute)
 	return true
 }

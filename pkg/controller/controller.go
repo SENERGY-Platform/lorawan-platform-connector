@@ -39,6 +39,7 @@ type Controller struct {
 	chirpApp           api.ApplicationServiceClient
 	chirpDevice        api.DeviceServiceClient
 	chirpDeviceProfile api.DeviceProfileServiceClient
+	chirpGateway       api.GatewayServiceClient
 	gocloakClient      *gocloak.GoCloak
 	jwt                *gocloak.JWT
 	jwtMux             sync.RWMutex
@@ -58,6 +59,7 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 	chirpApp := api.NewApplicationServiceClient(conn)
 	chirpDevice := api.NewDeviceServiceClient(conn)
 	chirpDeviceProfile := api.NewDeviceProfileServiceClient(conn)
+	chirpGateway := api.NewGatewayServiceClient(conn)
 
 	// test connection
 	gocloakCtx, chirpCf := context.WithTimeout(ctx, 10*time.Second)
@@ -83,6 +85,7 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 		chirpApp:           chirpApp,
 		chirpDevice:        chirpDevice,
 		chirpDeviceProfile: chirpDeviceProfile,
+		chirpGateway:       chirpGateway,
 		jwt:                jwt,
 		gocloakClient:      gocloakClient,
 		jwtMux:             sync.RWMutex{},

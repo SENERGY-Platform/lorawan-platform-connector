@@ -38,6 +38,8 @@ github.com/SENERGY-Platform/go-service-base/struct-logger v0.6.0 h1:DQNAPU1DI3XN
 github.com/SENERGY-Platform/go-service-base/struct-logger v0.6.0/go.mod h1:z9cf8WOUMLoifRj5Tqts1MNe6QoPFq5Msxj899ZC11g=
 github.com/SENERGY-Platform/models/go v0.0.0-20251202070403-e7e5579f7111 h1:FuKWD5CANJ9q9cBVUrOag0FY0WFDB+qPtwXHn2fxO50=
 github.com/SENERGY-Platform/models/go v0.0.0-20251202070403-e7e5579f7111/go.mod h1:bCREPNRN4P8oxLgpC3/ZKK4jXSy4MSPXoiomhohE+aw=
+github.com/SENERGY-Platform/models/go v0.0.0-20260302084452-04ca9ee69c93 h1:v0KuYs3xeZKQsKe2em5EsnqOYWXHX+D6Az+ElQaP+XA=
+github.com/SENERGY-Platform/models/go v0.0.0-20260302084452-04ca9ee69c93/go.mod h1:bCREPNRN4P8oxLgpC3/ZKK4jXSy4MSPXoiomhohE+aw=
 github.com/SENERGY-Platform/permissions-v2 v0.0.40 h1:uXQODsL/SHDBtALanPfoGNQuEpRxbbo3S7jT/gP4rBE=
 github.com/SENERGY-Platform/permissions-v2 v0.0.40/go.mod h1:QI5IYmoWLVapp34989giU3dHDQ+TIHQEj7sIm8DpX3Q=
 github.com/SENERGY-Platform/platform-connector-lib v0.0.0-20260226054955-4f9f91afcfa1 h1:klyKqZ6EIfg0/QIODQzROAGqLwQVb9MCMXy2IyFnXLU=

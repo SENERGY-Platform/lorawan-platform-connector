@@ -328,32 +328,32 @@ func (c *Controller) prepareDeviceType(listItem *api.DeviceProfileListItem, prof
 			{
 				Key:    model.DeviceTypeAttributeManagedByKey,
 				Value:  model.DeviceTypeAttributeManagedByValue,
-				Origin: model.DeviceAttributeOrigin,
+				Origin: model.AttributeOrigin,
 			},
 			{
 				Key:    model.DeviceTypeAttributeDeviceProfileIdKey,
 				Value:  profile.Id,
-				Origin: model.DeviceAttributeOrigin,
+				Origin: model.AttributeOrigin,
 			},
 			{
 				Key:    model.DeviceAttributeSupportsOTAAKey,
 				Value:  strconv.FormatBool(profile.SupportsOtaa),
-				Origin: model.DeviceAttributeOrigin,
+				Origin: model.AttributeOrigin,
 			},
 			{
 				Key:    model.DeviceAttributeSupportsClassBKey,
 				Value:  strconv.FormatBool(profile.SupportsClassB),
-				Origin: model.DeviceAttributeOrigin,
+				Origin: model.AttributeOrigin,
 			},
 			{
 				Key:    model.DeviceAttributeSupportsClassCKey,
 				Value:  strconv.FormatBool(profile.SupportsClassC),
-				Origin: model.DeviceAttributeOrigin,
+				Origin: model.AttributeOrigin,
 			},
 			{
-				Key:    "last_message_max_age",
+				Key:    model.DeviceAttributeMessageMaxAgeKey,
 				Value:  fmt.Sprintf("%ds", profile.UplinkInterval),
-				Origin: model.DeviceAttributeOrigin,
+				Origin: model.AttributeOrigin,
 			},
 		},
 		Services: []models.Service{{

@@ -88,3 +88,25 @@ func patchSyncAllDeviceProfiles(controller *controller.Controller) (string, stri
 		}
 	}
 }
+
+// patchSyncAllGateways godoc
+// @Summary      Sync Gateways
+// @Description  Syncs all gateways
+// @Success      200 {object} string "status message (or null)"
+// @Failure      400
+// @Failure      500
+// @Tags         Sync
+// @Security     Bearer
+// @Router       /sync/gateways [PATCH]
+func patchSyncAllGateways(controller *controller.Controller) (string, string, gin.HandlerFunc) {
+	return http.MethodPatch, "/sync/gateways", func(gc *gin.Context) {
+		err := errors.Join(
+			controller.SyncAllGateways(),
+			controller.DeleteOutdatedGateways(),
+		)
+		if err != nil {
+			gc.Error(err)
+			return
+		}
+	}
+}
