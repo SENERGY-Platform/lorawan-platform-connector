@@ -62,7 +62,7 @@ func (c *Controller) ProvisionUser(ctx context.Context, chirpUserId string, user
 	}
 
 	// get tenant id
-	tenantId, err := c.getOrCreateChirpstackTenantId(ctx, *userInfo.Email)
+	tenantId, err := c.getOrCreateChirpstackTenantId(ctx, *userInfo.Email, *userInfo.Sub)
 	if err != nil {
 		return err
 	}
@@ -156,7 +156,7 @@ func (c *Controller) DeleteUser(ctx context.Context, email string) error {
 	if err != nil {
 		return err
 	}
-	tenantId, err := c.getOrCreateChirpstackTenantId(ctx, email)
+	tenantId, err := c.getOrCreateChirpstackTenantId(ctx, email, "") // will be deleted anyway
 	if err != nil {
 		return err
 	}
@@ -236,17 +236,22 @@ func (c *Controller) DeleteOutdatedUsers() error {
 	return err
 }
 
-func (c *Controller) createTenant(ctx context.Context, email string) (tenant *api.CreateTenantResponse, err error) {
-	return c.chirpTenant.Create(ctx, &api.CreateTenantRequest{
-		Tenant: &api.Tenant{
-			Name:                email,
-			PrivateGatewaysUp:   true,
-			PrivateGatewaysDown: true,
-			CanHaveGateways:     true,
-			Tags: map[string]string{
-				"Managed-By": "lorawan-platform-connector",
-			},
+func prepareTenant(email string, userid string) *api.Tenant {
+	return &api.Tenant{
+		Name:                email,
+		PrivateGatewaysUp:   true,
+		PrivateGatewaysDown: true,
+		CanHaveGateways:     true,
+		Tags: map[string]string{
+			"Managed-By":         "lorawan-platform-connector",
+			model.ChirpTagUserId: userid,
 		},
+	}
+}
+
+func (c *Controller) createTenant(ctx context.Context, email string, userid string) (tenant *api.CreateTenantResponse, err error) {
+	return c.chirpTenant.Create(ctx, &api.CreateTenantRequest{
+		Tenant: prepareTenant(email, userid),
 	})
 }
 
@@ -306,14 +311,14 @@ func (c *Controller) getOrCreateChirpstackUserId(ctx context.Context, email stri
 	return userCreateResp.GetId(), err
 }
 
-func (c *Controller) getOrCreateChirpstackTenantId(ctx context.Context, email string) (string, error) {
+func (c *Controller) getOrCreateChirpstackTenantId(ctx context.Context, email string, userid string) (string, error) {
 	tenantResp, err := c.chirpTenant.List(ctx, &api.ListTenantsRequest{Search: email, Limit: 2})
 	if err != nil {
 		return "", err
 	}
 	tenants := tenantResp.GetResult()
 	if len(tenants) == 0 {
-		tenant, err := c.createTenant(ctx, email)
+		tenant, err := c.createTenant(ctx, email, userid)
 		if err != nil {
 			return "", err
 		}
@@ -321,6 +326,14 @@ func (c *Controller) getOrCreateChirpstackTenantId(ctx context.Context, email st
 	} else if len(tenants) > 1 {
 		log.Logger.Error("found multiple tenants", "email", email)
 		return "", fmt.Errorf("found multiple tenants")
+	} else if c.config.UpdateTenants {
+		t := prepareTenant(email, userid)
+		t.Id = tenants[0].Id
+		_, err = c.chirpTenant.Update(ctx, &api.UpdateTenantRequest{Tenant: t})
+		if err != nil {
+			return "", err
+		}
+		return tenants[0].Id, nil
 	}
 	return tenants[0].Id, nil
 

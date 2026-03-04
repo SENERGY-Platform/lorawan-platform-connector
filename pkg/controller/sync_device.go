@@ -423,7 +423,7 @@ func (c *Controller) setupEventSyncDevice(ctx context.Context) error {
 				// user has no email, cannot determine tenant
 				return nil
 			}
-			tenant, err := c.getOrCreateChirpstackTenantId(ctx2, *user.Email)
+			tenant, err := c.getOrCreateChirpstackTenantId(ctx2, *user.Email, command.Device.OwnerId)
 			if err != nil {
 				return err
 			}
@@ -471,7 +471,7 @@ func (c *Controller) prepareChirpDevice(ctx context.Context, platformDevice *mod
 	if user.Email == nil || *user.Email == "" {
 		return nil, nil, nil, fmt.Errorf("user has no email")
 	}
-	tenantId, err := c.getOrCreateChirpstackTenantId(ctx, *user.Email)
+	tenantId, err := c.getOrCreateChirpstackTenantId(ctx, *user.Email, platformDevice.OwnerId)
 	if err != nil {
 		return nil, nil, nil, err
 	}

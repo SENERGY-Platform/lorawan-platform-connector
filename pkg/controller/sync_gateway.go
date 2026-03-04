@@ -67,7 +67,7 @@ func (c *Controller) SyncGateway(ctx context.Context, hub *models.Hub) error {
 		log.Logger.Warn("user has no email, cannot determine tenant for gateway", "userId", hub.OwnerId, "gateway_eui", eui, "hub_id", hub.Id)
 		return nil
 	}
-	tenant, err := c.getOrCreateChirpstackTenantId(ctx, *user.Email)
+	tenant, err := c.getOrCreateChirpstackTenantId(ctx, *user.Email, hub.OwnerId)
 	if err != nil {
 		return errors.Join(fmt.Errorf("unable to read tenant from chirpstack"), err)
 	}
@@ -339,7 +339,7 @@ func (c *Controller) setupEventSyncGateway(ctx context.Context) error {
 				// user has no email, cannot determine tenant
 				return nil
 			}
-			tenantId, err := c.getOrCreateChirpstackTenantId(ctx2, *user.Email)
+			tenantId, err := c.getOrCreateChirpstackTenantId(ctx2, *user.Email, command.Hub.OwnerId)
 			if err != nil {
 				return err
 			}

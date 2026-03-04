@@ -48,3 +48,5 @@ const AttributeOriginWebUI = "web-ui"
 
 const RedisPrefix = "lorawan-platform-connector_"
 const RedisKeyFmtGatewayDevice = RedisPrefix + "gateway_%s_%s"
+
+const ChirpTagUserId = "userId"

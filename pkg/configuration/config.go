@@ -42,4 +42,5 @@ type Config struct {
 	DeviceClassId            string          `env_var:"DEVICE_CLASS_ID"`
 	RedisUrl                 string          `env_var:"REDIS_URL"`
 	DisableSync              bool            `env_var:"DISABLE_SYNC"`
+	UpdateTenants            bool            `env_var:"UPDATE_TENANTS"`
 }
