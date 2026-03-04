@@ -499,7 +499,7 @@ func (c *Controller) linkHubDevices(ctx context.Context, gateway *api.Gateway, h
 	return updated
 }
 
-func getHubEUI(hub *models.Hub) *string {
+func GetHubEUI(hub *models.Hub) *string {
 	for _, a := range hub.Attributes {
 		if a.Key == model.GatewayAttributeEUI {
 			return &a.Value
