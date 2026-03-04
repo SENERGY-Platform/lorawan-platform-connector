@@ -41,7 +41,7 @@ import (
 )
 
 func (c *Controller) SyncGateway(ctx context.Context, hub *models.Hub) error {
-	eui := getHubEUI(hub)
+	eui := GetHubEUI(hub)
 
 	if eui == nil {
 		return nil
@@ -309,7 +309,7 @@ func (c *Controller) setupEventSyncGateway(ctx context.Context) error {
 			defer cf()
 			return c.SyncGateway(ctx2, &hub)
 		case model.DeleteCommand:
-			eui := getHubEUI(&command.Hub)
+			eui := GetHubEUI(&command.Hub)
 
 			if eui == nil {
 				return nil
