@@ -60,7 +60,7 @@ func (c *Controller) SyncGateway(ctx context.Context, hub *models.Hub) error {
 	user, err := c.gocloakClient.GetUserByID(ctx, c.jwt.AccessToken, "master", hub.OwnerId)
 	c.jwtMux.RUnlock()
 	if err != nil {
-		return err
+		return errors.Join(fmt.Errorf("unable to read user from keycloak"), err)
 	}
 	if user.Email == nil || *user.Email == "" {
 		// user has no email, cannot determine tenant
@@ -69,7 +69,7 @@ func (c *Controller) SyncGateway(ctx context.Context, hub *models.Hub) error {
 	}
 	tenant, err := c.getOrCreateChirpstackTenantId(ctx, *user.Email)
 	if err != nil {
-		return err
+		return errors.Join(fmt.Errorf("unable to read tenant from chirpstack"), err)
 	}
 
 	// check if gateway exists in chirpstack
@@ -81,7 +81,7 @@ func (c *Controller) SyncGateway(ctx context.Context, hub *models.Hub) error {
 		}, hub) {
 			_, err, _ := c.deviceRepo.SetHub("Bearer "+c.jwt.AccessToken, *hub)
 			if err != nil {
-				return err
+				return errors.Join(fmt.Errorf("unable to update hub (duplicate)"), err)
 			}
 		}
 		return nil
@@ -99,7 +99,7 @@ func (c *Controller) SyncGateway(ctx context.Context, hub *models.Hub) error {
 	if update {
 		_, err, _ := c.deviceRepo.SetHub("Bearer "+c.jwt.AccessToken, *hub)
 		if err != nil {
-			return err
+			return errors.Join(fmt.Errorf("unable to update hub (attributes & device link)"), err)
 		}
 	}
 
@@ -303,7 +303,7 @@ func (c *Controller) setupEventSyncGateway(ctx context.Context) error {
 				if code != http.StatusNotFound {
 					return nil
 				}
-				return err
+				return errors.Join(fmt.Errorf("unable to read hub from device repo"), err)
 			}
 			ctx2, cf := context.WithTimeout(ctx, 10*time.Second)
 			defer cf()
