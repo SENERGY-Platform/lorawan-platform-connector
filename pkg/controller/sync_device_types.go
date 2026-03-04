@@ -513,7 +513,7 @@ func contentVariableNeedsUpdate(existing *models.ContentVariable, new *models.Co
 	return false
 }
 
-func prepareContentVariable(val *any, base *models.ContentVariable) *models.ContentVariable { // TODO this is not working with lists
+func prepareContentVariable(val *any, base *models.ContentVariable) *models.ContentVariable {
 	if val == nil {
 		return nil
 	}
