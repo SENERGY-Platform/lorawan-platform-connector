@@ -44,6 +44,7 @@ const GatewayAttributeLat = "location-lat"
 const GatewayAttributeLon = "location-lon"
 
 const AttributeOrigin = "lorawan-platform-connector"
+const AttributeOriginWebUI = "web-ui"
 
 const RedisPrefix = "lorawan-platform-connector_"
 const RedisKeyFmtGatewayDevice = RedisPrefix + "gateway_%s_%s"

@@ -92,7 +92,7 @@ func (c *Controller) SyncGateway(ctx context.Context, hub *models.Hub) error {
 		gw = gateway.Gateway
 	}
 
-	newGateway := prepareGateway(gw, hub, tenant)
+	newGateway, updateGw := prepareGateway(gw, hub, tenant)
 
 	update := fillHubAttributes(gw, hub)
 	update = c.linkHubDevices(ctx, gw, hub) || update // careful: lazy eval!
@@ -116,7 +116,7 @@ func (c *Controller) SyncGateway(ctx context.Context, hub *models.Hub) error {
 		return nil
 	}
 
-	if gateway.Gateway.Name != hub.Name {
+	if updateGw {
 		_, err := c.chirpGateway.Update(ctx, &api.UpdateGatewayRequest{
 			Gateway: newGateway,
 		})
@@ -364,10 +364,11 @@ func (c *Controller) setupEventSyncGateway(ctx context.Context) error {
 	})
 }
 
-func prepareGateway(gw *api.Gateway, hub *models.Hub, tenantId string) *api.Gateway {
+func prepareGateway(gw *api.Gateway, hub *models.Hub, tenantId string) (*api.Gateway, bool) {
 	rv := &api.Gateway{
 		TenantId: tenantId,
 	}
+	updated := false
 
 	if gw != nil {
 		rv.Description = gw.Description
@@ -377,8 +378,12 @@ func prepareGateway(gw *api.Gateway, hub *models.Hub, tenantId string) *api.Gate
 		rv.Metadata = gw.Metadata
 		rv.StatsInterval = gw.StatsInterval
 		rv.Tags = gw.Tags
+		rv.Name = gw.Name
 	}
 
+	if rv.Name != hub.Name {
+		updated = true
+	}
 	rv.Name = hub.Name
 	for _, a := range hub.Attributes {
 		switch a.Key {
@@ -387,21 +392,29 @@ func prepareGateway(gw *api.Gateway, hub *models.Hub, tenantId string) *api.Gate
 		case model.GatewayAttributeLat:
 			if rv.Location == nil {
 				rv.Location = &common.Location{}
+				updated = true
 			}
 			lat, err := strconv.ParseFloat(a.Value, 64)
 			if err != nil {
 				log.Logger.Error("error parsing gateway latitude", "err", err, "value", a.Value)
 			} else {
+				if rv.Location.Latitude != lat {
+					updated = true
+				}
 				rv.Location.Latitude = lat
 			}
 		case model.GatewayAttributeLon:
 			if rv.Location == nil {
 				rv.Location = &common.Location{}
+				updated = true
 			}
 			lon, err := strconv.ParseFloat(a.Value, 64)
 			if err != nil {
 				log.Logger.Error("error parsing gateway longitude", "err", err, "value", a.Value)
 			} else {
+				if rv.Location.Longitude != lon {
+					updated = true
+				}
 				rv.Location.Longitude = lon
 			}
 
@@ -410,13 +423,16 @@ func prepareGateway(gw *api.Gateway, hub *models.Hub, tenantId string) *api.Gate
 			if err != nil {
 				log.Logger.Error("error parsing gateway message max age", "err", err, "value", a.Value)
 			} else {
+				if rv.StatsInterval != uint32(maxAge.Seconds()) {
+					updated = true
+				}
 				rv.StatsInterval = uint32(maxAge.Seconds())
 			}
 		default:
 			continue
 		}
 	}
-	return rv
+	return rv, updated
 }
 
 func fillHubAttributes(gateway *api.Gateway, hub *models.Hub) bool {
@@ -427,21 +443,24 @@ func fillHubAttributes(gateway *api.Gateway, hub *models.Hub) bool {
 	if gateway.Location != nil {
 		if gateway.Location.Latitude != 0 {
 			updated = model.UpsertGatewayAttribute(models.Attribute{
-				Key:   model.GatewayAttributeLat,
-				Value: strconv.FormatFloat(gateway.Location.Latitude, 'f', -1, 64),
+				Key:    model.GatewayAttributeLat,
+				Value:  strconv.FormatFloat(gateway.Location.Latitude, 'f', -1, 64),
+				Origin: model.AttributeOriginWebUI,
 			}, hub) || updated // careful: lazy eval!
 		}
 		if gateway.Location.Longitude != 0 {
 			updated = model.UpsertGatewayAttribute(models.Attribute{
-				Key:   model.GatewayAttributeLon,
-				Value: strconv.FormatFloat(gateway.Location.Longitude, 'f', -1, 64),
+				Key:    model.GatewayAttributeLon,
+				Value:  strconv.FormatFloat(gateway.Location.Longitude, 'f', -1, 64),
+				Origin: model.AttributeOriginWebUI,
 			}, hub) || updated // careful: lazy eval!
 		}
 	}
 	if gateway.StatsInterval != 0 {
 		updated = model.UpsertGatewayAttribute(models.Attribute{
-			Key:   model.DeviceAttributeMessageMaxAgeKey,
-			Value: strconv.FormatUint(uint64(gateway.StatsInterval), 10) + "s",
+			Key:    model.DeviceAttributeMessageMaxAgeKey,
+			Value:  strconv.FormatUint(uint64(gateway.StatsInterval), 10) + "s",
+			Origin: model.AttributeOriginWebUI,
 		}, hub) || updated // careful: lazy eval!
 	}
 	return updated
