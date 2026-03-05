@@ -52,6 +52,7 @@ func generateCert(controller *controller.Controller) (string, string, gin.Handle
 		certs, err := controller.ProvisionGatewayCerts(gc.Request.Context(), token, hubId)
 		if err != nil {
 			gc.Error(err)
+			return
 		}
 		gc.JSON(http.StatusOK, certs)
 	}
