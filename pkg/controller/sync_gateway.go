@@ -33,6 +33,7 @@ import (
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/log"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/model"
 	"github.com/SENERGY-Platform/models/go/models"
+	platform_connector_lib "github.com/SENERGY-Platform/platform-connector-lib"
 	"github.com/SENERGY-Platform/platform-connector-lib/kafka"
 	"github.com/chirpstack/chirpstack/api/go/v4/api"
 	"github.com/chirpstack/chirpstack/api/go/v4/common"
@@ -46,12 +47,25 @@ func (c *Controller) SyncGateway(ctx context.Context, hub *models.Hub) error {
 	if eui == nil {
 		return nil
 	}
+
+	expiration := GetHubCertExpiration(hub)
+	if expiration != nil && time.Until(*expiration) < 30*24*time.Hour {
+		err := c.connector.SendNotification(platform_connector_lib.Notification{
+			UserId:  hub.OwnerId,
+			Title:   "LoRaWAN Certificate Expiry Warning",
+			Message: fmt.Sprintf("Your certificate of hub %s will expire on %s and has not been renewed.", hub.Id, expiration.Format(time.RFC1123)),
+		})
+		if err != nil {
+			log.Logger.Error("error sending certificate expiry notification", attributes.ErrorKey, err, "hub_id", hub.Id)
+		}
+	}
+
 	gateway, err := c.chirpGateway.Get(ctx, &api.GetGatewayRequest{
 		GatewayId: *eui,
 	})
 
 	if err != nil && status.Code(err) != codes.NotFound {
-		log.Logger.Error("error getting gateway", "err", err)
+		log.Logger.Error("error getting gateway", attributes.ErrorKey, err)
 		return err
 	}
 
@@ -503,6 +517,20 @@ func GetHubEUI(hub *models.Hub) *string {
 	for _, a := range hub.Attributes {
 		if a.Key == model.GatewayAttributeEUI {
 			return &a.Value
+		}
+	}
+	return nil
+}
+
+func GetHubCertExpiration(hub *models.Hub) *time.Time {
+	for _, a := range hub.Attributes {
+		if a.Key == model.GatewayAttributeCertsExpiration {
+			t, err := time.Parse(time.RFC3339, a.Value)
+			if err != nil {
+				log.Logger.Error("error parsing gateway cert expiration", attributes.ErrorKey, err, "value", a.Value)
+				return nil
+			}
+			return &t
 		}
 	}
 	return nil

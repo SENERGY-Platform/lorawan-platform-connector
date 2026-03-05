@@ -1,22 +1,11 @@
-<mxfile host="Electron" modified="2026-02-26T06:27:42.714Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/23.1.5 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="_TFlpwMhtcwRijnuPf2k" version="23.1.5" type="device">
-  <diagram name="Seite-1" id="yDxRp-bE-Mu7MIxdbAt3">
+<mxfile host="Electron" modified="2026-03-05T07:28:12.115Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/23.1.5 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="wcu18bh_HoCKl0IJ1gaK" version="23.1.5" type="device" pages="3">
+  <diagram name="architecture" id="yDxRp-bE-Mu7MIxdbAt3">
     <mxGraphModel dx="1577" dy="2201" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="eizCr9zObm0GJHL2PQN6-27" value="LoRaWAN Plattform Connector" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;fontSize=18;sketch=1;curveFitting=1;jiggle=2;" parent="1" vertex="1">
           <mxGeometry x="360" y="-50" width="620" height="570" as="geometry" />
-        </mxCell>
-        <mxCell id="1DcB080x2Lamqi-9Oy3E-1" value="User Removal" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=none;endFill=0;sketch=1;curveFitting=1;jiggle=2;" parent="1" target="eizCr9zObm0GJHL2PQN6-44" edge="1">
-          <mxGeometry x="-1" y="-175" relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="730" y="90" />
-              <mxPoint x="690" y="90" />
-              <mxPoint x="690" y="55" />
-            </Array>
-            <mxPoint x="-135" y="170" as="offset" />
-            <mxPoint x="730" y="100" as="sourcePoint" />
-          </mxGeometry>
         </mxCell>
         <mxCell id="eizCr9zObm0GJHL2PQN6-1" value="Chirpstack" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;curveFitting=1;jiggle=2;" parent="1" vertex="1">
           <mxGeometry x="130" y="270" width="120" height="60" as="geometry" />
@@ -140,17 +129,6 @@
         <mxCell id="dFrIM41CgtsN176384Qq-3" value="http" style="shape=providedRequiredInterface;html=1;verticalLabelPosition=bottom;direction=west;sketch=1;curveFitting=1;jiggle=2;" parent="1" vertex="1">
           <mxGeometry x="1010" y="65" width="20" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="dFrIM41CgtsN176384Qq-5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=none;endFill=0;sketch=1;curveFitting=1;jiggle=2;" parent="1" source="eizCr9zObm0GJHL2PQN6-31" edge="1">
-          <mxGeometry x="-0.8852" relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="810" y="280" />
-              <mxPoint x="730" y="280" />
-            </Array>
-            <mxPoint as="offset" />
-            <mxPoint x="810" y="325" as="sourcePoint" />
-            <mxPoint x="730" y="100" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
         <mxCell id="dFrIM41CgtsN176384Qq-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;endFill=0;" parent="1" source="dFrIM41CgtsN176384Qq-4" target="eizCr9zObm0GJHL2PQN6-44" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
@@ -159,6 +137,97 @@
         </mxCell>
         <mxCell id="dFrIM41CgtsN176384Qq-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;endArrow=none;endFill=0;" parent="1" source="dFrIM41CgtsN176384Qq-4" target="dFrIM41CgtsN176384Qq-3" edge="1">
           <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="uzmlDDt9SIKlsAoKRaC9" name="mTLS">
+    <mxGraphModel dx="1577" dy="1301" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="7Dl1jzK78MBPs3256-mA-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="7Dl1jzK78MBPs3256-mA-2" target="7Dl1jzK78MBPs3256-mA-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="7Dl1jzK78MBPs3256-mA-2" value="Gateway" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="288" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="7Dl1jzK78MBPs3256-mA-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" target="7Dl1jzK78MBPs3256-mA-6">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="640" y="318" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="7Dl1jzK78MBPs3256-mA-4" value="Ingress Controller" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="288" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="7Dl1jzK78MBPs3256-mA-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="7Dl1jzK78MBPs3256-mA-6" target="7Dl1jzK78MBPs3256-mA-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="7Dl1jzK78MBPs3256-mA-6" value="Bridge" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;" vertex="1" parent="1">
+          <mxGeometry x="720" y="288" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="7Dl1jzK78MBPs3256-mA-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="7Dl1jzK78MBPs3256-mA-8" target="7Dl1jzK78MBPs3256-mA-9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="7Dl1jzK78MBPs3256-mA-8" value="MQTT Broker" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="288" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="7Dl1jzK78MBPs3256-mA-9" value="Chirpstack" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="288" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="7Dl1jzK78MBPs3256-mA-10" value="TLS Passthrough" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.security.lock_protected;fillColor=#FF6666;hachureGap=4;jiggle=2;curveFitting=1;" vertex="1" parent="1">
+          <mxGeometry x="569" y="210" width="38" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="7Dl1jzK78MBPs3256-mA-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="282" as="sourcePoint" />
+            <mxPoint x="720" y="282" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="XYOsEQyB3VY62nIEmpj6" name="mTLS-Certs">
+    <mxGraphModel dx="901" dy="-157" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="6mqOFJ6U3pvcYUTeQ0_n-1" value="1. Request Cert" style="edgeStyle=orthogonalEdgeStyle;rounded=0;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" target="6mqOFJ6U3pvcYUTeQ0_n-9">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="438" y="1100" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="6mqOFJ6U3pvcYUTeQ0_n-2" value="Device Repo" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1210" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6mqOFJ6U3pvcYUTeQ0_n-4" value="2. Gen Cert" style="edgeStyle=orthogonalEdgeStyle;rounded=0;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="6mqOFJ6U3pvcYUTeQ0_n-9" target="6mqOFJ6U3pvcYUTeQ0_n-10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="6mqOFJ6U3pvcYUTeQ0_n-5" value="3. Annotate Cert Expiration" style="edgeStyle=orthogonalEdgeStyle;rounded=0;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="6mqOFJ6U3pvcYUTeQ0_n-9" target="6mqOFJ6U3pvcYUTeQ0_n-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="6mqOFJ6U3pvcYUTeQ0_n-8" value="4. Notify User 30d before expiration&lt;br&gt;(during gateway sync)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="6mqOFJ6U3pvcYUTeQ0_n-9" target="6mqOFJ6U3pvcYUTeQ0_n-11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="6mqOFJ6U3pvcYUTeQ0_n-9" value="Lorawan Platform Connector" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;" vertex="1" parent="1">
+          <mxGeometry x="378" y="1210" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6mqOFJ6U3pvcYUTeQ0_n-10" value="Chirpstack" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;" vertex="1" parent="1">
+          <mxGeometry x="591" y="1210" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6mqOFJ6U3pvcYUTeQ0_n-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" edge="1" parent="1" source="6mqOFJ6U3pvcYUTeQ0_n-11" target="6mqOFJ6U3pvcYUTeQ0_n-12">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="810" y="1380" />
+              <mxPoint x="810" y="1050" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="6mqOFJ6U3pvcYUTeQ0_n-11" value="Notifier" style="rounded=1;whiteSpace=wrap;html=1;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;" vertex="1" parent="1">
+          <mxGeometry x="378" y="1350" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6mqOFJ6U3pvcYUTeQ0_n-12" value="User" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;sketch=1;hachureGap=4;jiggle=2;curveFitting=1;" vertex="1" parent="1">
+          <mxGeometry x="423" y="1020" width="30" height="60" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

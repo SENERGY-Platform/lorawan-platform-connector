@@ -119,6 +119,7 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 				if err != nil {
 					log.Logger.Error("failed to refresh token", attributes.ErrorKey, err)
 					controller.jwtMux.Unlock()
+					timer.Reset(5 * time.Second)
 					continue
 				}
 				controller.jwt = jwt

@@ -76,6 +76,43 @@ const docTemplate = `{
                 }
             }
         },
+        "/gateways/{hub_id}/cert": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Generates a new certificate",
+                "tags": [
+                    "Gateways"
+                ],
+                "summary": "Generate Certificate",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Hub ID",
+                        "name": "hub_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "generated certificate",
+                        "schema": {
+                            "$ref": "#/definitions/model.Certs"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
         "/provision": {
             "post": {
                 "description": "Runs the provision for a new user",
@@ -783,6 +820,20 @@ const docTemplate = `{
                 "wor_channel": {
                     "description": "WOR channel.",
                     "type": "integer"
+                }
+            }
+        },
+        "model.Certs": {
+            "type": "object",
+            "properties": {
+                "certificate": {
+                    "type": "string"
+                },
+                "expires_at": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
                 }
             }
         },

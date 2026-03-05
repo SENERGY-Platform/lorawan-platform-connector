@@ -24,6 +24,7 @@ import (
 
 var ErrBadRequest = fmt.Errorf("bad request")
 var ErrNotFound = fmt.Errorf("not found")
+var ErrForbidden = fmt.Errorf("forbidden")
 
 func GetStatusCode(err error) int {
 	if err == nil {
@@ -35,6 +36,8 @@ func GetStatusCode(err error) int {
 	if errors.Is(err, ErrNotFound) {
 		return http.StatusNotFound
 	}
-
+	if errors.Is(err, ErrForbidden) {
+		return http.StatusForbidden
+	}
 	return http.StatusInternalServerError
 }

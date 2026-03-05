@@ -83,7 +83,7 @@ func (c *Controller) initConnector(ctx context.Context, config configuration.Con
 
 		DeviceTypeTopic: "device-types",
 
-		NotificationsIgnoreDuplicatesWithinS: 3600,
+		NotificationsIgnoreDuplicatesWithinS: 60 * 60 * 24 * 30, // 30 days
 		NotificationUserOverwrite:            "",
 
 		DeveloperNotificationUrl: "http://api.developer-notifications:8080",

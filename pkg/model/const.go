@@ -42,6 +42,7 @@ const DeviceAttributeMessageMaxAgeKey = "last_message_max_age"
 const GatewayAttributeEUI = "senergy/lora/eui"
 const GatewayAttributeLat = "location-lat"
 const GatewayAttributeLon = "location-lon"
+const GatewayAttributeCertsExpiration = "senergy/lora/certs-expiration"
 
 const AttributeOrigin = "lorawan-platform-connector"
 const AttributeOriginWebUI = "web-ui"

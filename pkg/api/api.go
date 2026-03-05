@@ -45,6 +45,7 @@ var routes = gin_mw.Routes[*controller.Controller]{
 	patchSyncAllDevices,
 	patchSyncAllDeviceProfiles,
 	patchSyncAllGateways,
+	generateCert,
 }
 
 // Start godoc

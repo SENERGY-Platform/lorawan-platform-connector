@@ -17,6 +17,8 @@
 package model
 
 import (
+	"time"
+
 	"github.com/Nerzal/gocloak/v13"
 	"github.com/SENERGY-Platform/models/go/models"
 )
@@ -62,4 +64,10 @@ type HubCommand struct {
 	Command Command    `json:"command"`
 	Id      string     `json:"id"`
 	Hub     models.Hub `json:"hub"`
+}
+
+type Certs struct {
+	Certificate string    `json:"certificate"`
+	Key         string    `json:"key"`
+	ExpiresAt   time.Time `json:"expires_at"`
 }
