@@ -108,21 +108,22 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 
 	// setup token refresh
 	go func() {
-		ticker := time.NewTicker(time.Duration(jwt.ExpiresIn)*time.Second - 10*time.Second)
-		defer ticker.Stop()
+		timer := time.NewTimer(time.Duration(jwt.ExpiresIn-60) * time.Second)
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case <-ticker.C:
-				jwt, err := gocloakClient.RefreshToken(ctx, jwt.RefreshToken, config.KeycloakClientId, config.KeycloakClientSecret, "master")
+			case <-timer.C:
+				controller.jwtMux.Lock()
+				jwt, err := gocloakClient.LoginClient(gocloakCtx, config.KeycloakClientId, config.KeycloakClientSecret, "master")
 				if err != nil {
-					log.Logger.Error("failed to refresh token", "error", err)
+					log.Logger.Error("failed to refresh token", attributes.ErrorKey, err)
+					controller.jwtMux.Unlock()
 					continue
 				}
-				controller.jwtMux.Lock()
 				controller.jwt = jwt
 				controller.jwtMux.Unlock()
+				timer.Reset(time.Duration(jwt.ExpiresIn-60) * time.Second)
 			}
 		}
 	}()
