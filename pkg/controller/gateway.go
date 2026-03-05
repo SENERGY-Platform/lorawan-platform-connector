@@ -40,8 +40,24 @@ func (c *Controller) ProvisionGatewayCerts(ctx context.Context, token jwt.Token,
 	if eui == nil {
 		return certs, errors.Join(model.ErrBadRequest, fmt.Errorf("hub does not have a valid EUI"))
 	}
+	email := token.Email
+	sub := token.Sub
+	if hub.OwnerId != string(token.Sub) {
+		// get user info
+		c.jwtMux.RLock()
+		user, err := c.gocloakClient.GetUserByID(ctx, c.jwt.AccessToken, "master", hub.OwnerId)
+		c.jwtMux.RUnlock()
+		if err != nil {
+			return certs, err
+		}
+		if user.Email == nil || user.ID == nil {
+			return certs, errors.Join(model.ErrBadRequest, fmt.Errorf("user does not have email or id"))
+		}
+		email = *user.Email
+		sub = *user.ID
+	}
 
-	tenantId, err := c.getOrCreateChirpstackTenantId(ctx, token.Email, token.Sub)
+	tenantId, err := c.getOrCreateChirpstackTenantId(ctx, email, sub)
 	if err != nil {
 		return certs, err
 	}
