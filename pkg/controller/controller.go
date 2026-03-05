@@ -115,7 +115,7 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 				return
 			case <-timer.C:
 				controller.jwtMux.Lock()
-				jwt, err := gocloakClient.LoginClient(gocloakCtx, config.KeycloakClientId, config.KeycloakClientSecret, "master")
+				jwt, err := gocloakClient.LoginClient(ctx, config.KeycloakClientId, config.KeycloakClientSecret, "master")
 				if err != nil {
 					log.Logger.Error("failed to refresh token", attributes.ErrorKey, err)
 					controller.jwtMux.Unlock()
