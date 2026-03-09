@@ -46,6 +46,20 @@ import (
 )
 
 func (c *Controller) SyncDevice(ctx context.Context, platformDevice *models.ExtendedDevice) error {
+	// ensure localId is lowercase, as chirpstack transforms it toLower and we wouldn't find the device anymore on events (platformDevice.LocalId is case-sensitive)
+	localIdLower := strings.ToLower(platformDevice.LocalId)
+	if platformDevice.Device.LocalId != localIdLower {
+		platformDevice.Device.LocalId = localIdLower
+		token, err := c.connector.Security().GetCachedUserToken(platformDevice.OwnerId, platform_connector_lib_model.RemoteInfo{})
+		if err != nil {
+			return err
+		}
+		_, err = c.connector.IotCache.UpdateDevice(token, platformDevice.Device)
+		if err != nil {
+			return err
+		}
+	}
+
 	name := platformDevice.DisplayName
 	if name == "" {
 		name = platformDevice.Name
