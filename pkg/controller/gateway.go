@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"time"
 
+	device_repo_client "github.com/SENERGY-Platform/device-repository/lib/client"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/model"
 	"github.com/SENERGY-Platform/models/go/models"
 	"github.com/SENERGY-Platform/service-commons/pkg/jwt"
@@ -85,7 +86,7 @@ func (c *Controller) ProvisionGatewayCerts(ctx context.Context, token jwt.Token,
 		Origin: model.AttributeOrigin,
 	}, &hub)
 	if update {
-		_, err, code = c.deviceRepo.SetHub(token.Token, hub)
+		_, err, code = c.deviceRepo.SetHub(token.Token, hub, device_repo_client.HubUpdateOptions{})
 		if err != nil {
 			return certs, provisionGatewayCertsHandleErr(err, &code)
 		}

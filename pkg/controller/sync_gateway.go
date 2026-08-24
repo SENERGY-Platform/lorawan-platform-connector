@@ -93,7 +93,7 @@ func (c *Controller) SyncGateway(ctx context.Context, hub *models.Hub) error {
 			Value:  "true",
 			Origin: model.AttributeOrigin,
 		}, hub) {
-			_, err, _ := c.deviceRepo.SetHub("Bearer "+c.jwt.AccessToken, *hub)
+			_, err, _ := c.deviceRepo.SetHub("Bearer "+c.jwt.AccessToken, *hub, device_repo.HubUpdateOptions{})
 			if err != nil {
 				return errors.Join(fmt.Errorf("unable to update hub (duplicate)"), err)
 			}
@@ -111,7 +111,7 @@ func (c *Controller) SyncGateway(ctx context.Context, hub *models.Hub) error {
 	update := fillHubAttributes(gw, hub)
 	update = c.linkHubDevices(ctx, gw, hub) || update // careful: lazy eval!
 	if update {
-		_, err, _ := c.deviceRepo.SetHub("Bearer "+c.jwt.AccessToken, *hub)
+		_, err, _ := c.deviceRepo.SetHub("Bearer "+c.jwt.AccessToken, *hub, device_repo.HubUpdateOptions{})
 		if err != nil {
 			return errors.Join(fmt.Errorf("unable to update hub (attributes & device link)"), err)
 		}

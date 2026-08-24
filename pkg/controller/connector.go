@@ -22,10 +22,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/IBM/sarama"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/configuration"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/log"
 	platform_connector_lib "github.com/SENERGY-Platform/platform-connector-lib"
+	"github.com/segmentio/kafka-go"
 )
 
 func (c *Controller) initConnector(ctx context.Context, config configuration.Config) error {
@@ -69,8 +69,8 @@ func (c *Controller) initConnector(ctx context.Context, config configuration.Con
 		AsyncPgThreadMax:    1000,
 		AsyncFlushMessages:  200,
 		AsyncFlushFrequency: 500 * time.Millisecond,
-		AsyncCompression:    sarama.CompressionSnappy,
-		SyncCompression:     sarama.CompressionSnappy,
+		AsyncCompression:    kafka.Snappy,
+		SyncCompression:     kafka.Snappy,
 
 		KafkaConsumerMaxWait:  "1s",
 		KafkaConsumerMinBytes: 1000,
