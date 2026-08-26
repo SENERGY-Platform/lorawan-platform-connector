@@ -7,12 +7,12 @@ require (
 	github.com/SENERGY-Platform/gin-middleware v0.14.1
 	github.com/SENERGY-Platform/go-env-loader v0.5.3
 	github.com/SENERGY-Platform/go-service-base/struct-logger v0.8.0
-	github.com/SENERGY-Platform/platform-connector-lib v0.0.0-20260824085938-afad12d1d4ed
+	github.com/SENERGY-Platform/platform-connector-lib v0.0.0-20260826082643-802ca9df203c
 	github.com/chirpstack/chirpstack/api/go/v4 v4.16.2
 	github.com/gin-contrib/requestid v1.0.5
 	github.com/gin-gonic/gin v1.12.0
 	github.com/swaggo/swag v1.16.6
-	google.golang.org/grpc v1.81.1
+	google.golang.org/grpc v1.82.1
 	google.golang.org/protobuf v1.36.11
 )
 
@@ -52,11 +52,11 @@ require (
 	github.com/Knetic/govaluate v3.0.0+incompatible // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/RyanCarrier/dijkstra v1.4.0 // indirect
-	github.com/SENERGY-Platform/converter v0.0.11 // indirect
-	github.com/SENERGY-Platform/developer-notifications v0.0.5 // indirect
-	github.com/SENERGY-Platform/device-repository v0.2.53
+	github.com/SENERGY-Platform/converter v0.0.12 // indirect
+	github.com/SENERGY-Platform/developer-notifications v0.0.6 // indirect
+	github.com/SENERGY-Platform/device-repository v0.3.2
 	github.com/SENERGY-Platform/models/go v0.0.0-20260710115411-5b8e00d6e038
-	github.com/SENERGY-Platform/permissions-v2 v0.0.45 // indirect
+	github.com/SENERGY-Platform/permissions-v2 v0.0.47 // indirect
 	github.com/SENERGY-Platform/service-commons v0.0.0-20260821114734-3e4578ac2358
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20230905024940-24af94b03874 // indirect
@@ -92,7 +92,7 @@ require (
 	github.com/jackc/pgx/v4 v4.18.3 // indirect
 	github.com/jackc/puddle v1.3.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.18.6 // indirect
+	github.com/klauspost/compress v1.18.7 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
