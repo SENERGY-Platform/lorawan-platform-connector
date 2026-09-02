@@ -17,6 +17,7 @@
 package controller
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -614,7 +615,29 @@ func prepareContentVariable(val *any, base *models.ContentVariable) *models.Cont
 			}
 		}
 	}
+	sortSubContentVariables(cv)
 	return cv
+}
+
+// sortSubContentVariables brings the sub content variables into a deterministic order.
+// prepareContentVariable collects them by iterating go maps, so without sorting their order varies
+// per call and the reflect.DeepEqual comparison in ensureSyncedService reports a change on every event.
+func sortSubContentVariables(cv *models.ContentVariable) {
+	if cv.Type == models.List {
+		// sub content variables of a list are named after their index and have to keep their numeric order
+		slices.SortFunc(cv.SubContentVariables, func(a models.ContentVariable, b models.ContentVariable) int {
+			aIndex, aErr := strconv.Atoi(a.Name)
+			bIndex, bErr := strconv.Atoi(b.Name)
+			if aErr != nil || bErr != nil {
+				return cmp.Compare(a.Name, b.Name)
+			}
+			return cmp.Compare(aIndex, bIndex)
+		})
+		return
+	}
+	slices.SortFunc(cv.SubContentVariables, func(a models.ContentVariable, b models.ContentVariable) int {
+		return cmp.Compare(a.Name, b.Name)
+	})
 }
 
 func inferModelFromValue(value any) *models.Type {
