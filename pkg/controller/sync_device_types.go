@@ -142,6 +142,8 @@ func (c *Controller) ensureSyncedService(dt models.DeviceType, localServiceId st
 	}
 	var base *models.ContentVariable
 	found := -1
+	// dt shares its service slice with the value stored in the iot cache, so it must not be modified in place
+	dt.Services = slices.Clone(dt.Services)
 	for i, s := range dt.Services {
 		if s.LocalId == localServiceId && s.ProtocolId == c.config.ProtocolId && s.Interaction == models.EVENT {
 			service.Id = s.Id
@@ -153,7 +155,6 @@ func (c *Controller) ensureSyncedService(dt models.DeviceType, localServiceId st
 				service.Attributes = s.Attributes
 				service.ServiceGroupKey = s.ServiceGroupKey
 			}
-			dt.Services[i] = *service
 			found = i
 			break
 		}
