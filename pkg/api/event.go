@@ -123,7 +123,7 @@ func postEvent(controller *controller.Controller) (string, string, gin.HandlerFu
 			return
 
 		default:
-			gc.Error(errors.Join(model.ErrBadRequest, fmt.Errorf("unknown event type "+event)))
+			gc.Error(errors.Join(model.ErrBadRequest, fmt.Errorf("unknown event type %s", event)))
 			return
 		}
 	}
@@ -143,6 +143,6 @@ func unmarshalEvent(gc *gin.Context, v proto.Message) error {
 	case "application/json":
 		return protojson.Unmarshal(body, v)
 	default:
-		return fmt.Errorf("unsupported content type " + gc.ContentType())
+		return fmt.Errorf("unsupported content type %s", gc.ContentType())
 	}
 }
