@@ -403,8 +403,12 @@ func (c *Controller) setupEventSyncDevice(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
+			// A PutCommand may name a device that is already deleted or that the
+			// connector's token cannot see. No redelivery makes that resolvable,
+			// so skip the message instead of failing on it again and again.
 			if len(devices) != 1 {
-				return fmt.Errorf("got unexpected list of devices, expected length to be 1, device_id: %s", command.Device.Id)
+				log.Logger.Warn("skipping device sync, device not resolvable", "device_id", command.Device.Id, "device_count", len(devices))
+				return nil
 			}
 			if !deviceTypeManagedByLorawanPlatformConnector(*devices[0].DeviceType) {
 				return nil
