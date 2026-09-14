@@ -314,7 +314,11 @@ func (c *Controller) setupEventSyncGateway(ctx context.Context) error {
 			hub, err, code := c.deviceRepo.ReadHub(command.Hub.Id, "Bearer "+c.jwt.AccessToken, device_repo.READ)
 			c.jwtMux.RUnlock()
 			if err != nil {
-				if code != http.StatusNotFound {
+				// A hub that is gone cannot be synced and no redelivery changes
+				// that. Every other error is transient as far as we can tell and
+				// has to be reported, or the hub silently never gets synced.
+				if code == http.StatusNotFound {
+					log.Logger.Warn("skipping gateway sync, hub not found", "hub_id", command.Hub.Id)
 					return nil
 				}
 				return errors.Join(fmt.Errorf("unable to read hub from device repo"), err)
