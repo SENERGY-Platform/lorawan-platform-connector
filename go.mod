@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/Nerzal/gocloak/v13 v13.9.0
-	github.com/SENERGY-Platform/gin-middleware v0.14.1
+	github.com/SENERGY-Platform/gin-middleware v0.14.2
 	github.com/SENERGY-Platform/go-env-loader v0.5.3
 	github.com/SENERGY-Platform/go-service-base/struct-logger v0.8.0
 	github.com/SENERGY-Platform/platform-connector-lib v0.0.0-20260826082643-802ca9df203c
