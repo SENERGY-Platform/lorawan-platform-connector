@@ -7,7 +7,7 @@ require (
 	github.com/SENERGY-Platform/gin-middleware v0.14.2
 	github.com/SENERGY-Platform/go-env-loader v0.5.3
 	github.com/SENERGY-Platform/go-service-base/struct-logger v0.8.0
-	github.com/SENERGY-Platform/platform-connector-lib v0.0.0-20261016111927-8b8b183a7008
+	github.com/SENERGY-Platform/platform-connector-lib v0.0.0-20261021074538-f4621c89f07c
 	github.com/chirpstack/chirpstack/api/go/v4 v4.16.2
 	github.com/gin-contrib/requestid v1.0.5
 	github.com/gin-gonic/gin v1.12.0
