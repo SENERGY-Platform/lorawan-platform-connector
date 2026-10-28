@@ -101,9 +101,7 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 		rdb:                rdb,
 	}
 	controller.deviceRepo = device_repo.NewClient(config.DeviceRepoUrl, func() (token string, err error) {
-		controller.jwtMux.RLock()
-		defer controller.jwtMux.RUnlock()
-		return controller.jwt.AccessToken, nil
+		return controller.accessToken(), nil
 	})
 
 	// setup token refresh
@@ -151,4 +149,14 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 	}
 
 	return controller, nil
+}
+
+// accessToken returns the connector's current access token. The lock is held
+// only while the token is copied: held across a request, a request that does
+// not return keeps the token refresh waiting, and every later reader queues
+// behind the refresh.
+func (c *Controller) accessToken() string {
+	c.jwtMux.RLock()
+	defer c.jwtMux.RUnlock()
+	return c.jwt.AccessToken
 }

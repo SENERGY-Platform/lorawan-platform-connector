@@ -126,9 +126,7 @@ func (c *Controller) ProvisionUser(ctx context.Context, chirpUserId string, user
 func (c *Controller) ProvisionAllUsers() (err error) {
 	getUsersCtx, getUsersCf := context.WithTimeout(context.Background(), 10*time.Second)
 	defer getUsersCf()
-	c.jwtMux.RLock()
-	kcUsers, err := c.gocloakClient.GetUsers(getUsersCtx, c.jwt.AccessToken, "master", gocloak.GetUsersParams{})
-	c.jwtMux.RUnlock()
+	kcUsers, err := c.gocloakClient.GetUsers(getUsersCtx, c.accessToken(), "master", gocloak.GetUsersParams{})
 	mux := sync.Mutex{}
 	if err != nil {
 		return err
@@ -175,9 +173,7 @@ func (c *Controller) DeleteUser(ctx context.Context, email string) error {
 
 func (c *Controller) DeleteOutdatedUsers() error {
 	ctx, cf := context.WithTimeout(context.Background(), 10*time.Second)
-	c.jwtMux.RLock()
-	kcUsers, err := c.gocloakClient.GetUsers(ctx, c.jwt.AccessToken, "master", gocloak.GetUsersParams{})
-	c.jwtMux.RUnlock()
+	kcUsers, err := c.gocloakClient.GetUsers(ctx, c.accessToken(), "master", gocloak.GetUsersParams{})
 	cf()
 	if err != nil {
 		return err

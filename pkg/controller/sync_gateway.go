@@ -70,9 +70,7 @@ func (c *Controller) SyncGateway(ctx context.Context, hub *models.Hub) error {
 	}
 
 	// get user info
-	c.jwtMux.RLock()
-	user, err := c.gocloakClient.GetUserByID(ctx, c.jwt.AccessToken, "master", hub.OwnerId)
-	c.jwtMux.RUnlock()
+	user, err := c.gocloakClient.GetUserByID(ctx, c.accessToken(), "master", hub.OwnerId)
 	if err != nil {
 		return errors.Join(fmt.Errorf("unable to read user from keycloak"), err)
 	}
@@ -93,7 +91,7 @@ func (c *Controller) SyncGateway(ctx context.Context, hub *models.Hub) error {
 			Value:  "true",
 			Origin: model.AttributeOrigin,
 		}, hub) {
-			_, err, _ := c.deviceRepo.SetHub("Bearer "+c.jwt.AccessToken, *hub, device_repo.HubUpdateOptions{})
+			_, err, _ := c.deviceRepo.SetHub("Bearer "+c.accessToken(), *hub, device_repo.HubUpdateOptions{})
 			if err != nil {
 				return errors.Join(fmt.Errorf("unable to update hub (duplicate)"), err)
 			}
@@ -111,7 +109,7 @@ func (c *Controller) SyncGateway(ctx context.Context, hub *models.Hub) error {
 	update := fillHubAttributes(gw, hub)
 	update = c.linkHubDevices(ctx, gw, hub) || update // careful: lazy eval!
 	if update {
-		_, err, _ := c.deviceRepo.SetHub("Bearer "+c.jwt.AccessToken, *hub, device_repo.HubUpdateOptions{})
+		_, err, _ := c.deviceRepo.SetHub("Bearer "+c.accessToken(), *hub, device_repo.HubUpdateOptions{})
 		if err != nil {
 			return errors.Join(fmt.Errorf("unable to update hub (attributes & device link)"), err)
 		}
@@ -150,12 +148,10 @@ func (c *Controller) SyncAllGateways() (err error) {
 	var limit int64 = 1000
 	var offset int64 = 0
 	for {
-		c.jwtMux.RLock()
-		hubs, err, _ := c.deviceRepo.ListHubs("Bearer "+c.jwt.AccessToken, device_repo.HubListOptions{
+		hubs, err, _ := c.deviceRepo.ListHubs("Bearer "+c.accessToken(), device_repo.HubListOptions{
 			Limit:  limit,
 			Offset: offset,
 		})
-		c.jwtMux.RUnlock()
 		if err != nil {
 			return err
 		}
@@ -195,12 +191,10 @@ func (c *Controller) DeleteOutdatedGateways() (err error) {
 	wg := sync.WaitGroup{}
 
 	for {
-		c.jwtMux.RLock()
-		hubBatch, err, _ := c.deviceRepo.ListHubs("Bearer "+c.jwt.AccessToken, device_repo.HubListOptions{
+		hubBatch, err, _ := c.deviceRepo.ListHubs("Bearer "+c.accessToken(), device_repo.HubListOptions{
 			Limit:  repoLimit,
 			Offset: repoOffset,
 		})
-		c.jwtMux.RUnlock()
 		if err != nil {
 			return err
 		}
@@ -240,9 +234,7 @@ func (c *Controller) DeleteOutdatedGateways() (err error) {
 								return false
 							}
 
-							c.jwtMux.RLock()
-							user, err2 := c.gocloakClient.GetUserByID(ctx, c.jwt.AccessToken, "master", hub.OwnerId)
-							c.jwtMux.RUnlock()
+							user, err2 := c.gocloakClient.GetUserByID(ctx, c.accessToken(), "master", hub.OwnerId)
 							if err2 != nil {
 								mux.Lock()
 								err = errors.Join(err, err2)
@@ -310,9 +302,7 @@ func (c *Controller) setupEventSyncGateway(ctx context.Context) error {
 			return nil
 		case model.PutCommand:
 			// get latest version of hub
-			c.jwtMux.RLock()
-			hub, err, code := c.deviceRepo.ReadHub(command.Hub.Id, "Bearer "+c.jwt.AccessToken, device_repo.READ)
-			c.jwtMux.RUnlock()
+			hub, err, code := c.deviceRepo.ReadHub(command.Hub.Id, "Bearer "+c.accessToken(), device_repo.READ)
 			if err != nil {
 				// A hub that is gone cannot be synced and no redelivery changes
 				// that. Every other error is transient as far as we can tell and
@@ -347,9 +337,7 @@ func (c *Controller) setupEventSyncGateway(ctx context.Context) error {
 			}
 
 			// get user info
-			c.jwtMux.RLock()
-			user, err := c.gocloakClient.GetUserByID(ctx2, c.jwt.AccessToken, "master", command.Hub.OwnerId)
-			c.jwtMux.RUnlock()
+			user, err := c.gocloakClient.GetUserByID(ctx2, c.accessToken(), "master", command.Hub.OwnerId)
 			if err != nil {
 				return err
 			}

@@ -40,12 +40,10 @@ import (
 )
 
 func (c *Controller) SyncDeviceProfile(ctx context.Context, listItem *api.DeviceProfileListItem, profile *api.DeviceProfile) error {
-	c.jwtMux.RLock()
-	deviceTypes, _, err, _ := c.deviceRepo.ListDeviceTypesV3("Bearer "+c.jwt.AccessToken, device_repo_model.DeviceTypeListOptions{
+	deviceTypes, _, err, _ := c.deviceRepo.ListDeviceTypesV3("Bearer "+c.accessToken(), device_repo_model.DeviceTypeListOptions{
 		AttributeKeys:   []string{model.DeviceTypeAttributeDeviceProfileIdKey},
 		AttributeValues: []string{profile.Id},
 	})
-	c.jwtMux.RUnlock()
 	if err != nil {
 		return err
 	}
@@ -57,9 +55,7 @@ func (c *Controller) SyncDeviceProfile(ctx context.Context, listItem *api.Device
 				dt := c.prepareDeviceType(listItem, profile, &deviceType)
 				if deviceTypeNeedsUpdate(&deviceType, &dt) {
 					dt.Id = deviceType.Id
-					c.jwtMux.RLock()
-					_, err, _ = c.deviceRepo.SetDeviceType("Bearer "+c.jwt.AccessToken, dt, device_repo_model.DeviceTypeUpdateOptions{})
-					c.jwtMux.RUnlock()
+					_, err, _ = c.deviceRepo.SetDeviceType("Bearer "+c.accessToken(), dt, device_repo_model.DeviceTypeUpdateOptions{})
 					if err != nil {
 						return err
 					}
@@ -70,9 +66,7 @@ func (c *Controller) SyncDeviceProfile(ctx context.Context, listItem *api.Device
 	}
 	if !found {
 		dt := c.prepareDeviceType(listItem, profile, nil)
-		c.jwtMux.RLock()
-		_, err, _ := c.deviceRepo.SetDeviceType("Bearer "+c.jwt.AccessToken, dt, device_repo_model.DeviceTypeUpdateOptions{})
-		c.jwtMux.RUnlock()
+		_, err, _ := c.deviceRepo.SetDeviceType("Bearer "+c.accessToken(), dt, device_repo_model.DeviceTypeUpdateOptions{})
 		if err != nil {
 			return err
 		}

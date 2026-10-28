@@ -188,14 +188,12 @@ func (c *Controller) SyncAllDevices() (err error) {
 	wg := sync.WaitGroup{}
 	mux := sync.Mutex{}
 	for cont {
-		c.jwtMux.RLock()
-		deviceTypes, _, err, _ := c.deviceRepo.ListDeviceTypesV3("Bearer "+c.jwt.AccessToken, device_repo.DeviceTypeListOptions{
+		deviceTypes, _, err, _ := c.deviceRepo.ListDeviceTypesV3("Bearer "+c.accessToken(), device_repo.DeviceTypeListOptions{
 			AttributeKeys:   []string{model.DeviceTypeAttributeManagedByKey},
 			AttributeValues: []string{model.DeviceTypeAttributeManagedByValue},
 			Limit:           int64(limit),
 			Offset:          int64(offset),
 		})
-		c.jwtMux.RUnlock()
 		if err != nil {
 			return err
 		}
@@ -208,14 +206,12 @@ func (c *Controller) SyncAllDevices() (err error) {
 				limit := 1000
 				offset := 0
 				for cont {
-					c.jwtMux.RLock()
-					devices, _, err2, _ := c.deviceRepo.ListExtendedDevices("Bearer "+c.jwt.AccessToken, device_repo.ExtendedDeviceListOptions{
+					devices, _, err2, _ := c.deviceRepo.ListExtendedDevices("Bearer "+c.accessToken(), device_repo.ExtendedDeviceListOptions{
 						DeviceTypeIds: []string{dt.Id},
 						Limit:         int64(limit),
 						Offset:        int64(offset),
 						FullDt:        true,
 					})
-					c.jwtMux.RUnlock()
 					if err2 != nil {
 						mux.Lock()
 						err = errors.Join(err, fmt.Errorf("unable to list devices for device type %s", dt.Id))
@@ -252,12 +248,10 @@ func (c *Controller) DeleteOutdatedDevices() error {
 	cont := true
 	ctx, cf := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cf()
-	c.jwtMux.RLock()
-	kcUsers, err := c.gocloakClient.GetUsers(ctx, c.jwt.AccessToken, "master", gocloak.GetUsersParams{})
+	kcUsers, err := c.gocloakClient.GetUsers(ctx, c.accessToken(), "master", gocloak.GetUsersParams{})
 	if err != nil {
 		return err
 	}
-	c.jwtMux.RUnlock()
 	wg := sync.WaitGroup{}
 	mux := sync.Mutex{}
 	var sErr error
@@ -327,12 +321,10 @@ func (c *Controller) DeleteOutdatedDevices() error {
 							for _, d := range chirpDevices.Result {
 								localIds = append(localIds, d.DevEui)
 							}
-							c.jwtMux.RLock()
-							platformDevices, err, _ := c.deviceRepo.ListDevices("Bearer "+c.jwt.AccessToken, device_repo.DeviceListOptions{
+							platformDevices, err, _ := c.deviceRepo.ListDevices("Bearer "+c.accessToken(), device_repo.DeviceListOptions{
 								LocalIds: localIds,
 								Owner:    ownerId,
 							})
-							c.jwtMux.RUnlock()
 							if err != nil {
 								mux.Lock()
 								defer mux.Unlock()
@@ -394,12 +386,10 @@ func (c *Controller) setupEventSyncDevice(ctx context.Context) error {
 		case model.RightsCommand:
 			return nil
 		case model.PutCommand:
-			c.jwtMux.RLock()
-			devices, _, err, _ := c.deviceRepo.ListExtendedDevices("Bearer "+c.jwt.AccessToken, device_repo.ExtendedDeviceListOptions{
+			devices, _, err, _ := c.deviceRepo.ListExtendedDevices("Bearer "+c.accessToken(), device_repo.ExtendedDeviceListOptions{
 				Ids:    []string{command.Device.Id},
 				FullDt: true,
 			})
-			c.jwtMux.RUnlock()
 			if err != nil {
 				return err
 			}
@@ -431,9 +421,7 @@ func (c *Controller) setupEventSyncDevice(ctx context.Context) error {
 			}
 
 			// get user info
-			c.jwtMux.RLock()
-			user, err := c.gocloakClient.GetUserByID(ctx2, c.jwt.AccessToken, "master", command.Device.OwnerId)
-			c.jwtMux.RUnlock()
+			user, err := c.gocloakClient.GetUserByID(ctx2, c.accessToken(), "master", command.Device.OwnerId)
 			if err != nil {
 				return err
 			}
@@ -471,9 +459,7 @@ func (c *Controller) setupEventSyncDevice(ctx context.Context) error {
 
 func (c *Controller) prepareChirpDevice(ctx context.Context, platformDevice *models.ExtendedDevice, name string) (*api.Device, *api.DeviceActivation, *api.DeviceKeys, error) {
 	user, err := cache.Use(c.connector.IotCache.GetCache(), "lpc_user_"+platformDevice.OwnerId, func() (gocloak.User, error) {
-		c.jwtMux.RLock()
-		user, err := c.gocloakClient.GetUserByID(ctx, c.jwt.AccessToken, "master", platformDevice.OwnerId)
-		c.jwtMux.RUnlock()
+		user, err := c.gocloakClient.GetUserByID(ctx, c.accessToken(), "master", platformDevice.OwnerId)
 		if err != nil {
 			return gocloak.User{}, err
 		}

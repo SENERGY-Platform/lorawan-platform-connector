@@ -45,9 +45,7 @@ func (c *Controller) ProvisionGatewayCerts(ctx context.Context, token jwt.Token,
 	sub := token.Sub
 	if hub.OwnerId != string(token.Sub) {
 		// get user info
-		c.jwtMux.RLock()
-		user, err := c.gocloakClient.GetUserByID(ctx, c.jwt.AccessToken, "master", hub.OwnerId)
-		c.jwtMux.RUnlock()
+		user, err := c.gocloakClient.GetUserByID(ctx, c.accessToken(), "master", hub.OwnerId)
 		if err != nil {
 			return certs, err
 		}
