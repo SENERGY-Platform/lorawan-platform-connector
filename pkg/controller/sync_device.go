@@ -188,14 +188,15 @@ func (c *Controller) SyncAllDevices() (err error) {
 	wg := sync.WaitGroup{}
 	mux := sync.Mutex{}
 	for cont {
-		deviceTypes, _, err, _ := c.deviceRepo.ListDeviceTypesV3("Bearer "+c.accessToken(), device_repo.DeviceTypeListOptions{
+		deviceTypes, _, listErr, _ := c.deviceRepo.ListDeviceTypesV3("Bearer "+c.accessToken(), device_repo.DeviceTypeListOptions{
 			AttributeKeys:   []string{model.DeviceTypeAttributeManagedByKey},
 			AttributeValues: []string{model.DeviceTypeAttributeManagedByValue},
 			Limit:           int64(limit),
 			Offset:          int64(offset),
 		})
-		if err != nil {
-			return err
+		if listErr != nil {
+			wg.Wait()
+			return errors.Join(err, listErr)
 		}
 		for _, dt := range deviceTypes {
 			if !deviceTypeManagedByLorawanPlatformConnector(dt) {
@@ -214,7 +215,7 @@ func (c *Controller) SyncAllDevices() (err error) {
 					})
 					if err2 != nil {
 						mux.Lock()
-						err = errors.Join(err, fmt.Errorf("unable to list devices for device type %s", dt.Id))
+						err = errors.Join(err, fmt.Errorf("unable to list devices for device type %s: %w", dt.Id, err2))
 						mux.Unlock()
 					}
 
@@ -225,7 +226,7 @@ func (c *Controller) SyncAllDevices() (err error) {
 							cf()
 							if err2 != nil {
 								mux.Lock()
-								err = errors.Join(err, fmt.Errorf("unable to sync device %s", d.Id))
+								err = errors.Join(err, fmt.Errorf("unable to sync device %s: %w", d.Id, err2))
 								mux.Unlock()
 							}
 						})
@@ -358,7 +359,7 @@ func (c *Controller) DeleteOutdatedDevices() error {
 		}
 	}
 	wg.Wait()
-	return nil
+	return sErr
 }
 
 func (c *Controller) setupEventSyncDevice(ctx context.Context) error {

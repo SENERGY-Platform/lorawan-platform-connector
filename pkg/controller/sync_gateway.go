@@ -149,12 +149,13 @@ func (c *Controller) SyncAllGateways() (err error) {
 	var limit int64 = 1000
 	var offset int64 = 0
 	for {
-		hubs, err, _ := c.deviceRepo.ListHubs("Bearer "+c.accessToken(), device_repo.HubListOptions{
+		hubs, listErr, _ := c.deviceRepo.ListHubs("Bearer "+c.accessToken(), device_repo.HubListOptions{
 			Limit:  limit,
 			Offset: offset,
 		})
-		if err != nil {
-			return err
+		if listErr != nil {
+			wg.Wait()
+			return errors.Join(err, listErr)
 		}
 
 		for _, hub := range hubs {
