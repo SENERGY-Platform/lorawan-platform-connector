@@ -50,21 +50,27 @@ func (c *Controller) setupSync(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	ticker := time.NewTicker(1 * time.Hour)
-	defer ticker.Stop()
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				err := c.Sync()
-				if err != nil {
-					log.Logger.Error("unable to sync", attributes.ErrorKey, err)
-					continue
-				}
-			}
+	go runEvery(ctx, time.Hour, func() {
+		err := c.Sync()
+		if err != nil {
+			log.Logger.Error("unable to sync", attributes.ErrorKey, err)
 		}
-	}()
+	})
 	return nil
+}
+
+// runEvery calls f every interval until ctx is done. The ticker belongs to the
+// goroutine that reads it: stopped by the function that only started the
+// goroutine, it never fired, and the hourly sync never ran.
+func runEvery(ctx context.Context, interval time.Duration, f func()) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			f()
+		}
+	}
 }
