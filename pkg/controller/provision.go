@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -126,7 +127,7 @@ func (c *Controller) ProvisionUser(ctx context.Context, chirpUserId string, user
 func (c *Controller) ProvisionAllUsers() (err error) {
 	getUsersCtx, getUsersCf := context.WithTimeout(context.Background(), 10*time.Second)
 	defer getUsersCf()
-	kcUsers, err := c.gocloakClient.GetUsers(getUsersCtx, c.accessToken(), "master", gocloak.GetUsersParams{})
+	kcUsers, err := c.keycloakUsers(getUsersCtx)
 	mux := sync.Mutex{}
 	if err != nil {
 		return err
@@ -173,7 +174,7 @@ func (c *Controller) DeleteUser(ctx context.Context, email string) error {
 
 func (c *Controller) DeleteOutdatedUsers() error {
 	ctx, cf := context.WithTimeout(context.Background(), 10*time.Second)
-	kcUsers, err := c.gocloakClient.GetUsers(ctx, c.accessToken(), "master", gocloak.GetUsersParams{})
+	kcUsers, err := c.keycloakUsers(ctx)
 	cf()
 	if err != nil {
 		return err
@@ -216,10 +217,13 @@ func (c *Controller) DeleteOutdatedUsers() error {
 			if match {
 				return
 			}
-			// no matching keycloak user exists
-			ctx, cf = context.WithTimeout(context.Background(), 10*time.Second)
-			err2 := c.DeleteUser(ctx, chirpUser.Email)
-			cf()
+			// no matching keycloak user in the list; confirm before deleting
+			ctx, cf := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cf()
+			exists, err2 := c.keycloakUserExists(ctx, chirpUser.Email)
+			if err2 == nil && !exists {
+				err2 = c.DeleteUser(ctx, chirpUser.Email)
+			}
 			if err2 != nil {
 				mux.Lock()
 				err = errors.Join(err, fmt.Errorf("unable to delete chirpstack user %s", chirpUser.Email), err2)
@@ -353,4 +357,42 @@ func (c *Controller) getOrCreateChirpstackAppId(ctx context.Context, tenantId st
 	} else {
 		return appList.Result[0].Id, nil
 	}
+}
+
+// keycloakUsers reads every user of the master realm. Without first and max,
+// keycloak answers with its first 100 users only, and the callers treat the
+// result as complete: DeleteOutdatedUsers deletes the ChirpStack user and its
+// tenant for everyone missing from it.
+func (c *Controller) keycloakUsers(ctx context.Context) (result []*gocloak.User, err error) {
+	const pageSize = 100
+	for first := 0; ; first += pageSize {
+		page, err := c.gocloakClient.GetUsers(ctx, c.accessToken(), "master", gocloak.GetUsersParams{
+			First: gocloak.IntP(first),
+			Max:   gocloak.IntP(pageSize),
+		})
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, page...)
+		if len(page) < pageSize {
+			return result, nil
+		}
+	}
+}
+
+// keycloakUserExists looks the email up directly, so that a deletion does not
+// rest on the list alone: a user removed from keycloak while keycloakUsers pages
+// through the realm shifts the later pages and leaves someone else out.
+func (c *Controller) keycloakUserExists(ctx context.Context, email string) (bool, error) {
+	users, err := c.gocloakClient.GetUsers(ctx, c.accessToken(), "master", gocloak.GetUsersParams{
+		Email: gocloak.StringP(email),
+		Exact: gocloak.BoolP(true),
+	})
+	if err != nil {
+		return false, err
+	}
+	//compared here as well, in case exact is ignored and the search matches substrings
+	return slices.ContainsFunc(users, func(user *gocloak.User) bool {
+		return user != nil && user.Email != nil && strings.EqualFold(*user.Email, email)
+	}), nil
 }

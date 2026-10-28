@@ -248,7 +248,7 @@ func (c *Controller) DeleteOutdatedDevices() error {
 	cont := true
 	ctx, cf := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cf()
-	kcUsers, err := c.gocloakClient.GetUsers(ctx, c.accessToken(), "master", gocloak.GetUsersParams{})
+	kcUsers, err := c.keycloakUsers(ctx)
 	if err != nil {
 		return err
 	}
