@@ -112,14 +112,17 @@ func New(config configuration.Config, ctx context.Context) (*Controller, error) 
 			case <-ctx.Done():
 				return
 			case <-timer.C:
-				controller.jwtMux.Lock()
-				jwt, err := gocloakClient.LoginClient(ctx, config.KeycloakClientId, config.KeycloakClientSecret, "master")
+				// logged in without the lock and with a timeout: a keycloak that does
+				// not answer delays the new token, but blocks no reader of the old one
+				loginCtx, loginCf := context.WithTimeout(ctx, 30*time.Second)
+				jwt, err := gocloakClient.LoginClient(loginCtx, config.KeycloakClientId, config.KeycloakClientSecret, "master")
+				loginCf()
 				if err != nil {
 					log.Logger.Error("failed to refresh token", attributes.ErrorKey, err)
-					controller.jwtMux.Unlock()
 					timer.Reset(5 * time.Second)
 					continue
 				}
+				controller.jwtMux.Lock()
 				controller.jwt = jwt
 				controller.jwtMux.Unlock()
 				timer.Reset(time.Duration(jwt.ExpiresIn-60) * time.Second)
