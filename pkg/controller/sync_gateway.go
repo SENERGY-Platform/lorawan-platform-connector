@@ -28,6 +28,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Nerzal/gocloak/v13"
 	device_repo "github.com/SENERGY-Platform/device-repository/lib/model"
 	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg/log"
@@ -184,19 +185,40 @@ func (c *Controller) SyncAllGateways() (err error) {
 func (c *Controller) DeleteOutdatedGateways() (err error) {
 	ctx, cf := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cf()
+
+	// ChirpStack first: a gateway is created after its hub, so the hub of every
+	// gateway listed here is in the hub list read afterwards, unless it has been
+	// deleted. Read the other way round, a hub created in between was missing
+	// from the hub list while its new gateway was already in ChirpStack.
+	chirpGws := []*api.GatewayListItem{}
+	var limit uint32 = 9999
+	var offset uint32 = 0
+	for {
+		page, listErr := c.chirpGateway.List(ctx, &api.ListGatewaysRequest{
+			Limit:  limit,
+			Offset: offset,
+		})
+		if listErr != nil {
+			log.Logger.Error("error listing chirpstack gateways", "err", listErr)
+			return listErr
+		}
+		chirpGws = append(chirpGws, page.Result...)
+		if int64(len(page.Result)) < int64(limit) {
+			break
+		}
+		offset += limit
+	}
+
 	var repoLimit int64 = 9999
 	var repoOffset int64 = 0
 	hubs := []models.Hub{}
-	mux := sync.Mutex{}
-	wg := sync.WaitGroup{}
-
 	for {
-		hubBatch, err, _ := c.deviceRepo.ListHubs("Bearer "+c.accessToken(), device_repo.HubListOptions{
+		hubBatch, listErr, _ := c.deviceRepo.ListHubs("Bearer "+c.accessToken(), device_repo.HubListOptions{
 			Limit:  repoLimit,
 			Offset: repoOffset,
 		})
-		if err != nil {
-			return err
+		if listErr != nil {
+			return listErr
 		}
 		hubs = append(hubs, hubBatch...)
 		if int64(len(hubBatch)) < repoLimit {
@@ -205,75 +227,73 @@ func (c *Controller) DeleteOutdatedGateways() (err error) {
 		repoOffset += repoLimit
 	}
 
-	var limit uint32 = 9999
-	var offset uint32 = 0
-	for {
-		chirpGws, err := c.chirpGateway.List(ctx, &api.ListGatewaysRequest{
-			Limit:  limit,
-			Offset: offset,
-		})
-		if err != nil {
-			log.Logger.Error("error listing chirpstack gateways", "err", err)
-			return err
-		}
-
-		for _, gw := range chirpGws.Result {
-			wg.Go(func() {
-				exists := slices.ContainsFunc(hubs, func(hub models.Hub) bool {
-					for _, a := range hub.Attributes {
-						if a.Key == model.GatewayAttributeEUI && a.Value == gw.GatewayId { // gateway exists by attribute
-
-							// check if user matches by comparing tenant name with user email
-							tenant, err2 := c.chirpTenant.Get(ctx, &api.GetTenantRequest{
-								Id: gw.TenantId,
-							})
-							if err2 != nil {
-								mux.Lock()
-								err = errors.Join(err, err2)
-								mux.Unlock()
-								return false
-							}
-
-							user, err2 := c.gocloakClient.GetUserByID(ctx, c.accessToken(), "master", hub.OwnerId)
-							if err2 != nil {
-								mux.Lock()
-								err = errors.Join(err, err2)
-								mux.Unlock()
-								return false
-							}
-
-							if user.Email != nil && *user.Email == tenant.Tenant.Name {
-								return true
-							}
-						}
-					}
-					return false
-				})
-				if exists {
-					return
-				}
-				// no matching gateway found in repo, delete from chirpstack
-				_, err2 := c.chirpGateway.Delete(ctx, &api.DeleteGatewayRequest{
-					GatewayId: gw.GatewayId,
-				})
-				if err2 != nil {
-					log.Logger.Error("error deleting gateway from chirpstack", "err", err2, "gateway_eui", gw.GatewayId)
-					mux.Lock()
-					err = errors.Join(err, err2)
-					mux.Unlock()
-					return
-				}
-				log.Logger.Debug("deleted gateway from chirpstack", "gateway_eui", gw.GatewayId)
+	mux := sync.Mutex{}
+	wg := sync.WaitGroup{}
+	for _, gw := range chirpGws {
+		wg.Go(func() {
+			exists, err2 := c.gatewayHasHub(ctx, gw, hubs)
+			if err2 != nil {
+				// unknown is not outdated: keep the gateway and report the error
+				mux.Lock()
+				err = errors.Join(err, fmt.Errorf("unable to check gateway %s: %w", gw.GatewayId, err2))
+				mux.Unlock()
+				return
+			}
+			if exists {
+				return
+			}
+			// no matching gateway found in repo, delete from chirpstack
+			_, err2 = c.chirpGateway.Delete(ctx, &api.DeleteGatewayRequest{
+				GatewayId: gw.GatewayId,
 			})
-		}
-
-		if int64(len(chirpGws.Result)) < int64(limit) {
-			break
-		}
-		offset += limit
+			if err2 != nil {
+				log.Logger.Error("error deleting gateway from chirpstack", "err", err2, "gateway_eui", gw.GatewayId)
+				mux.Lock()
+				err = errors.Join(err, err2)
+				mux.Unlock()
+				return
+			}
+			log.Logger.Debug("deleted gateway from chirpstack", "gateway_eui", gw.GatewayId)
+		})
 	}
 	wg.Wait()
 	return err
+}
+
+// gatewayHasHub reports whether a hub carries the gateway's EUI and belongs to
+// the owner of the gateway's tenant, which is matched by comparing the tenant
+// name with the user's email. An error leaves the answer open, and the caller
+// must not take it for false: a failed lookup used to delete the gateway.
+func (c *Controller) gatewayHasHub(ctx context.Context, gw *api.GatewayListItem, hubs []models.Hub) (bool, error) {
+	var tenant *api.GetTenantResponse
+	for _, hub := range hubs {
+		if !slices.ContainsFunc(hub.Attributes, func(a models.Attribute) bool {
+			return a.Key == model.GatewayAttributeEUI && a.Value == gw.GatewayId
+		}) {
+			continue
+		}
+		if tenant == nil {
+			var err error
+			tenant, err = c.chirpTenant.Get(ctx, &api.GetTenantRequest{
+				Id: gw.TenantId,
+			})
+			if err != nil {
+				return false, err
+			}
+		}
+		user, err := c.gocloakClient.GetUserByID(ctx, c.accessToken(), "master", hub.OwnerId)
+		var apiErr *gocloak.APIError
+		if errors.As(err, &apiErr) && apiErr.Code == http.StatusNotFound {
+			continue // the hub's owner is gone, so this hub does not keep the gateway
+		}
+		if err != nil {
+			return false, err
+		}
+		if user.Email != nil && *user.Email == tenant.Tenant.Name {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (c *Controller) setupEventSyncGateway(ctx context.Context) error {
