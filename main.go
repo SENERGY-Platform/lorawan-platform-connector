@@ -19,9 +19,11 @@ package main
 import (
 	"context"
 	log_ "log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	envldr "github.com/SENERGY-Platform/go-env-loader"
 	"github.com/SENERGY-Platform/lorawan-platform-connector/pkg"
@@ -66,6 +68,11 @@ func main() {
 	}
 
 	log.Init(config)
+
+	// The device-repository client sends its requests with http.DefaultClient and
+	// without a context. Without a timeout, a request that never gets an answer
+	// blocks its caller for good, the Kafka listener of the device sync included.
+	http.DefaultClient.Timeout = 30 * time.Second
 
 	ctx, cancel := context.WithCancel(context.Background())
 
